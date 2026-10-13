@@ -74,6 +74,46 @@ func _run() -> void:
 	check(creatures.size() >= 4, "生き物がいる（%d 匹）" % creatures.size())
 	check(Game.boss != null, "坑道の主がいる")
 
+	check(m.ground_view.get_used_cells().size() == used.size() - m.plat_view.get_used_cells().size(), "足場の見た目が当たり判定と同じマスに描かれた")
+	check(m.ladders.size() > 0, "はしごがある（%d マス）" % m.ladders.size())
+
+	# はしごを登る
+	var p0 := Game.player as Player
+	var start_pos := p0.global_position
+	var lad: Vector2i = m.ladders.keys()[0]
+	for c in m.ladders:
+		if m.ladders.has(c + Vector2i(0, -3)):
+			lad = c
+			break
+	p0.global_position = m.map.map_to_local(lad)
+	p0.velocity = Vector2.ZERO
+	var y_before := p0.global_position.y
+	Input.action_press("up")
+	await frames(12)
+	check(p0.climbing, "はしごにつかまった")
+	check(p0.global_position.y < y_before - 10.0, "はしごを登った")
+	Input.action_release("up")
+	await frames(10)
+	check(p0.climbing and absf(p0.velocity.y) < 1.0, "はしごの途中で止まれる")
+	Input.action_press("jump")
+	await frames(2)
+	Input.action_release("jump")
+	check(not p0.climbing, "ジャンプではしごを離れる")
+	p0.global_position = start_pos
+	p0.velocity = Vector2.ZERO
+	await frames(10)
+
+	# 掘ると見た目も消え、まわりの縁が描き直される
+	var dug_view := Vector2i(-1, -1)
+	for c in used:
+		if m.tile_at(c) == Tiles.DIRT and m.tile_at(c + Vector2i.UP) == Tiles.DIRT and c.y > 2 and c.y < m.map_h - 3 and c.x > 2 and c.x < m.map_w - 3:
+			dug_view = c
+			break
+	m.hit_tile(m.map.map_to_local(dug_view), 1)
+	check(m.ground_view.get_cell_source_id(dug_view) == -1, "掘ったマスの見た目が消えた")
+	var up_coords: Vector2i = m.ground_view.get_cell_atlas_coords(dug_view + Vector2i.UP)
+	check(m.ground_view.get_cell_source_id(dug_view + Vector2i.UP) == MineArt.SRC_TERRAIN and (up_coords.x + up_coords.y * 4) & 4 == 0, "上のマスが「下が開いた」形に描き直された")
+
 	# 足元を掘る
 	var p := Game.player as Player
 	var below: Vector2i = m.map.local_to_map(p.global_position) + Vector2i(0, 1)
