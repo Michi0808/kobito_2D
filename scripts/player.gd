@@ -17,7 +17,8 @@ const DASH_COOLDOWN := 0.55
 const COYOTE_TIME := 0.1
 const JUMP_BUFFER := 0.12
 const ATTACK_COOLDOWN := 0.26
-const BODY := Vector2(22, 54)
+## 当たり判定。絵は少し大きいが、2マス（64px）の通路を通れるように高さは 60 に収める
+const BODY := Vector2(26, 60)
 
 var hp := 5
 var facing := 1
@@ -56,7 +57,7 @@ func _ready() -> void:
 
 	# ホロウナイト風：少し遅れて追いかけ、向いている方を多めに見せるカメラ
 	camera = Camera2D.new()
-	camera.zoom = Vector2(1.5, 1.5)
+	camera.zoom = Vector2(1.15, 1.15)
 	camera.position_smoothing_enabled = true
 	camera.position_smoothing_speed = 7.0
 	camera.drag_vertical_enabled = true
@@ -260,11 +261,11 @@ func heal_full() -> void:
 func _draw() -> void:
 	# 葉のグライダー（頭の上で持つ）
 	if gliding:
-		var top := BODY.y / 2.0 - 74.0
+		var top := BODY.y / 2.0 - 154.0 * PlayerVisual.GAME_SCALE
 		draw_colored_polygon(PackedVector2Array([Vector2(-26, top + 6), Vector2(0, top - 6), Vector2(26, top + 6), Vector2(0, top + 2)]), Color(0.42, 0.66, 0.3))
 		draw_line(Vector2(-22, top + 5), Vector2(22, top + 5), Color(0.3, 0.48, 0.2), 1.5)
 	# 振り抜いた軌跡
 	if attack_show > 0.0:
 		var ang := attack_dir.angle()
-		var c := attack_dir * 18.0 + (Vector2(0, -4) if attack_dir.y == 0.0 else Vector2.ZERO)
-		draw_arc(c, 18.0, ang - 1.0, ang + 1.0, 10, Color(1.0, 0.95, 0.75, 0.55), 2.0)
+		var c := attack_dir * 22.0 + (Vector2(0, -4) if attack_dir.y == 0.0 else Vector2.ZERO)
+		draw_arc(c, 22.0, ang - 1.0, ang + 1.0, 10, Color(1.0, 0.95, 0.75, 0.55), 2.0)

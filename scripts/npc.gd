@@ -20,7 +20,7 @@ func _ready() -> void:
 	label = Label.new()
 	label.theme = Game.ui_theme
 	label.add_theme_font_size_override("font_size", 11)
-	label.position = Vector2(-110, -96)
+	label.position = Vector2(-110, -118)
 	label.size = Vector2(220, 40)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
@@ -38,8 +38,8 @@ func _process(_delta: float) -> void:
 
 
 func _draw() -> void:
-	# 仮の図形を主人公の大きさに合わせて2倍で描く
-	draw_set_transform(Vector2(0, -13), 0.0, Vector2(2, 2))
+	# 仮の図形を主人公の大きさに合わせて2.5倍で描く
+	draw_set_transform(Vector2(0, -19.5), 0.0, Vector2(2.5, 2.5))
 	draw_rect(Rect2(-6, 9, 4, 4), Color(0.3, 0.2, 0.12))
 	draw_rect(Rect2(2, 9, 4, 4), Color(0.3, 0.2, 0.12))
 	draw_rect(Rect2(-8, -4, 16, 14), coat)

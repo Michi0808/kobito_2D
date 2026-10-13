@@ -6,7 +6,7 @@ extends Node2D
 
 const DIR := "res://art/player/"
 ## 絵の大きさ（パーツは原画の 0.12 倍で書き出してあり、それをさらにこの倍率で表示する）
-const GAME_SCALE := 0.48
+const GAME_SCALE := 0.6
 const PARTS := {
 	"body": {"pivot": Vector2(42.24, 132.6), "origin": Vector2(0, 0)},
 	"arm": {"pivot": Vector2(8.28, 3.36), "origin": Vector2(-14.16, -61.08)},

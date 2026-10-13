@@ -16,7 +16,7 @@ func _run() -> void:
 		await get_tree().process_frame
 	var p: Player = Game.player
 	p.set_physics_process(false)
-	p.global_position = Vector2(1300, 16 * 32 - 27)
+	p.global_position = Vector2(1300, 16 * 32 - 30)
 	p.camera.zoom = Vector2(6, 6)
 	p.camera.position = Vector2(0, -10)
 	p.camera.position_smoothing_enabled = false
