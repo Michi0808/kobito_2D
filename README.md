@@ -50,7 +50,7 @@
 
 ## BGM
 
-`audio/rootlight_village_8bit.ogg` が村でも坑道でも繰り返し流れます。曲を替えるときは `audio/` に置いて、`scripts/game.gd` の `MAIN_BGM` のファイル名を書き換えます。
+`audio/rootlight_village_recorded.ogg` が村でも坑道でも繰り返し流れます。曲を替えるときは `audio/` に置いて、`scripts/game.gd` の `MAIN_BGM` のファイル名を書き換えます。
 
 ## フォルダ構成
 

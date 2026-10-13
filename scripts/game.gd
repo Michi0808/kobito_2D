@@ -260,7 +260,7 @@ func _add_action(action: String, keys: Array, buttons: Array = [], axis := -1, a
 
 ## audio/main_bgm.ogg（または .mp3 / .wav）を置くと、村でも坑道でもずっと流れる
 ## 村でも坑道でも流れる曲。差し替えるときはここのファイル名を変える
-const MAIN_BGM := "res://audio/rootlight_village_8bit.ogg"
+const MAIN_BGM := "res://audio/rootlight_village_recorded.ogg"
 ## まだ使っていない曲（坑道用・夜用）。場面や時間で切り替えるときに使う
 const MINE_BGM := "res://audio/amber_veins_mine_8bit.ogg"
 const NIGHT_BGM := "res://audio/rootlight_village_evening_8bit.ogg"
