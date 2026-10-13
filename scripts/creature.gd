@@ -85,7 +85,7 @@ func _touch_player() -> void:
 	if p == null or not is_instance_valid(p) or contact_damage <= 0:
 		return
 	var d := p.global_position - global_position
-	if absf(d.x) < size.x / 2.0 + 8.0 and absf(d.y) < size.y / 2.0 + 12.0:
+	if absf(d.x) < size.x / 2.0 + 8.0 and absf(d.y) < size.y / 2.0 + Player.BODY.y / 2.0 - 2.0:
 		p.take_damage(contact_damage, global_position)
 
 

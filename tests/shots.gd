@@ -26,7 +26,7 @@ func shot(name: String) -> void:
 func _run() -> void:
 	await frames(40)
 	await shot("00_village_market")
-	Game.player.global_position = Vector2(1300, 16 * 32 - 14)
+	Game.player.global_position = Vector2(1300, 16 * 32 - 27)
 	await frames(60)
 	await shot("00b_village_shops")
 	var b: BuildSystem = Game.level.build
@@ -45,7 +45,7 @@ func _run() -> void:
 	b.place("wall", Vector2i(85, 15))
 	b.place("bench", Vector2i(80, 15))
 	b.place("lamp", Vector2i(78, 14))
-	Game.player.global_position = Vector2(80 * 32, 16 * 32 - 14)
+	Game.player.global_position = Vector2(80 * 32, 16 * 32 - 27)
 	await frames(40)
 	await shot("01_village")
 	b.toggle()

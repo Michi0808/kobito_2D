@@ -47,7 +47,7 @@ func _ready() -> void:
 	var start_cell := generate()
 
 	player = Player.new()
-	player.position = Vector2(start_cell) * T + Vector2(T / 2.0, T - 14.0)
+	player.position = Vector2(start_cell) * T + Vector2(T / 2.0, T - Player.BODY.y / 2.0)
 	add_child(player)
 	player.set_camera_limits(Rect2(0, -T * 4, map_w * T, (map_h + 4) * T))
 
@@ -58,7 +58,7 @@ func _ready() -> void:
 
 	hud = HUD.new()
 	add_child(hud)
-	hud.set_hint("移動 A/D・←→　ジャンプ Space（落ちながら長押しで滑空）　攻撃・掘る J（W/Sで上下）　ダッシュ K　村へ帰る E長押し")
+	hud.set_hint("歩く A/D　走る K長押し　ジャンプ Space（落ちながら長押しで滑空）　攻撃・掘る J（W/Sで上下）　ダッシュ K　村へ帰る E長押し")
 	if not Game.has_lantern:
 		Game.post("坑道に入った。下＋攻撃で足元を掘れる。奥は暗いので、ランタンがあると心強い。")
 	else:

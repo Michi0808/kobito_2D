@@ -1,9 +1,10 @@
 class_name Player
 extends CharacterBody2D
-## 主人公（リネ族の小人）。走る・跳ぶ・滑空・ダッシュ・攻撃（＝つるはしで掘る）。
-## 絵は仮の図形。あとでパーツ分けした手描き絵＋Skeleton2D に差し替える。
+## 主人公（リネ族の小人）。歩く・走る・跳ぶ・滑空・ダッシュ・攻撃（＝つるはしで掘る）。
+## 見た目は PlayerVisual（キャラ絵をパーツ分けした切り絵アニメ）。
 
-const RUN_SPEED := 175.0
+const WALK_SPEED := 115.0
+const RUN_SPEED := 190.0
 const ACCEL := 1500.0
 const FRICTION := 1800.0
 const GRAVITY := 1150.0
@@ -16,7 +17,7 @@ const DASH_COOLDOWN := 0.55
 const COYOTE_TIME := 0.1
 const JUMP_BUFFER := 0.12
 const ATTACK_COOLDOWN := 0.26
-const BODY := Vector2(18, 26)
+const BODY := Vector2(22, 54)
 
 var hp := 5
 var facing := 1
@@ -34,6 +35,7 @@ var air_dash_used := false
 var controls_locked := false
 var camera: Camera2D
 var light: PointLight2D
+var visual: PlayerVisual
 
 
 func _ready() -> void:
@@ -47,6 +49,10 @@ func _ready() -> void:
 	sh.size = BODY
 	cs.shape = sh
 	add_child(cs)
+
+	visual = PlayerVisual.new()
+	visual.position = Vector2(0, BODY.y / 2.0)
+	add_child(visual)
 
 	# ホロウナイト風：少し遅れて追いかけ、向いている方を多めに見せるカメラ
 	camera = Camera2D.new()
@@ -127,7 +133,9 @@ func _physics_process(delta: float) -> void:
 		if input_x != 0.0:
 			facing = 1 if input_x > 0.0 else -1
 		var rate := ACCEL if input_x != 0.0 else FRICTION
-		velocity.x = move_toward(velocity.x, input_x * RUN_SPEED, rate * delta)
+		# ダッシュボタンを押し続けると走る
+		var speed := RUN_SPEED if Input.is_action_pressed("dash") and not controls_locked else WALK_SPEED
+		velocity.x = move_toward(velocity.x, input_x * speed, rate * delta)
 
 		if jump_buf > 0.0 and coyote > 0.0:
 			velocity.y = JUMP_VELOCITY
@@ -158,8 +166,30 @@ func _physics_process(delta: float) -> void:
 			Game.level.on_interact()
 
 	move_and_slide()
-	camera.offset.x = lerpf(camera.offset.x, facing * 48.0, 2.0 * delta)
+	# 向いている方を多めに見せる（offset だと画面端の制限を越えるので位置をずらす）
+	camera.position.x = lerpf(camera.position.x, facing * 48.0, 2.0 * delta)
+	_update_visual()
 	queue_redraw()
+
+
+func _update_visual() -> void:
+	visual.set_facing(facing)
+	var m := PlayerVisual.Move.IDLE
+	if gliding:
+		m = PlayerVisual.Move.GLIDE
+	elif not is_on_floor():
+		m = PlayerVisual.Move.RISE if velocity.y < 0.0 else PlayerVisual.Move.FALL
+	elif dash_t > 0.0 or absf(velocity.x) > (WALK_SPEED + RUN_SPEED) / 2.0:
+		m = PlayerVisual.Move.RUN
+	elif absf(velocity.x) > 15.0:
+		m = PlayerVisual.Move.WALK
+	visual.move = m
+	var a := 1.0
+	if invuln > 0.0 and int(invuln * 20.0) % 2 == 0:
+		a = 0.35
+	if hp <= 0:
+		a = 0.5
+	visual.modulate.a = a
 
 
 func _attack() -> void:
@@ -171,14 +201,16 @@ func _attack() -> void:
 		attack_dir = Vector2.DOWN
 	else:
 		attack_dir = Vector2(facing, 0)
+	visual.start_swing("side" if attack_dir.y == 0.0 else ("down" if attack_dir.y > 0.0 else "up"))
 	var power: int = Game.pick_level
 
 	# 生き物に当たったか
 	var shape := RectangleShape2D.new()
-	shape.size = Vector2(34, 26) if attack_dir.y == 0.0 else Vector2(26, 34)
+	shape.size = Vector2(36, 52) if attack_dir.y == 0.0 else Vector2(32, 36)
+	var reach := 26.0 if attack_dir.y == 0.0 else BODY.y / 2.0 + 12.0
 	var q := PhysicsShapeQueryParameters2D.new()
 	q.shape = shape
-	q.transform = Transform2D(0.0, global_position + attack_dir * 24.0)
+	q.transform = Transform2D(0.0, global_position + attack_dir * reach)
 	q.collision_mask = 4
 	var hit_creature := false
 	for h in get_world_2d().direct_space_state.intersect_shape(q, 8):
@@ -197,8 +229,14 @@ func _attack() -> void:
 
 	# 何もいなければ、その方向の壁を掘る
 	if Game.level != null and Game.level.has_method("hit_tile"):
-		if Game.level.hit_tile(global_position + attack_dir * 26.0, power) and attack_dir.y == 0.0:
-			velocity.x = -facing * 40.0
+		if attack_dir.y == 0.0:
+			# 体の高さ（2マス弱）ぶん、頭の高さと足の高さの両方を掘る
+			var hit_low: bool = Game.level.hit_tile(global_position + Vector2(facing * 28.0, 10.0), power)
+			var hit_high: bool = Game.level.hit_tile(global_position + Vector2(facing * 28.0, -10.0), power)
+			if hit_low or hit_high:
+				velocity.x = -facing * 40.0
+		else:
+			Game.level.hit_tile(global_position + attack_dir * (BODY.y / 2.0 + 14.0), power)
 
 
 func take_damage(amount: int, from: Vector2) -> void:
@@ -220,32 +258,13 @@ func heal_full() -> void:
 
 
 func _draw() -> void:
-	var a := 1.0
-	if invuln > 0.0 and int(invuln * 20.0) % 2 == 0:
-		a = 0.35
-	if hp <= 0:
-		a = 0.5
-	var f := float(facing)
-	# 葉のグライダー
+	# 葉のグライダー（頭の上で持つ）
 	if gliding:
-		draw_colored_polygon(PackedVector2Array([Vector2(-22, -24), Vector2(0, -34), Vector2(22, -24), Vector2(0, -27)]), Color(0.4, 0.7, 0.3, a))
-		draw_line(Vector2(0, -28), Vector2(0, -12), Color(0.35, 0.25, 0.15, a), 1.5)
-	# 足
-	draw_rect(Rect2(-6, 9, 4, 4), Color(0.3, 0.2, 0.12, a))
-	draw_rect(Rect2(2, 9, 4, 4), Color(0.3, 0.2, 0.12, a))
-	# 胴（麻布の服）
-	draw_rect(Rect2(-7, -4, 14, 14), Color(0.42, 0.52, 0.38, a))
-	draw_rect(Rect2(-7, 4, 14, 2), Color(0.55, 0.38, 0.22, a))
-	# 頭とどんぐりの帽子
-	draw_circle(Vector2(0, -9), 7.0, Color(0.96, 0.82, 0.68, a))
-	draw_rect(Rect2(-8, -18, 16, 6), Color(0.5, 0.33, 0.18, a))
-	draw_rect(Rect2(-1, -21, 2, 3), Color(0.4, 0.26, 0.14, a))
-	draw_circle(Vector2(f * 3.0, -9), 1.5, Color(0.1, 0.07, 0.05, a))
-	# ランタン
-	if Game.has_lantern:
-		draw_line(Vector2(-f * 7, -2), Vector2(-f * 10, 2), Color(0.3, 0.2, 0.1, a), 1.0)
-		draw_circle(Vector2(-f * 10, 5), 3.5, Color(1.0, 0.72, 0.25, a))
-	# つるはしの振り
+		var top := BODY.y / 2.0 - 74.0
+		draw_colored_polygon(PackedVector2Array([Vector2(-26, top + 6), Vector2(0, top - 6), Vector2(26, top + 6), Vector2(0, top + 2)]), Color(0.42, 0.66, 0.3))
+		draw_line(Vector2(-22, top + 5), Vector2(22, top + 5), Color(0.3, 0.48, 0.2), 1.5)
+	# 振り抜いた軌跡
 	if attack_show > 0.0:
 		var ang := attack_dir.angle()
-		draw_arc(attack_dir * 16.0, 16.0, ang - 1.1, ang + 1.1, 10, Color(1.0, 0.95, 0.75, 0.85), 3.0)
+		var c := attack_dir * 18.0 + (Vector2(0, -4) if attack_dir.y == 0.0 else Vector2.ZERO)
+		draw_arc(c, 18.0, ang - 1.0, ang + 1.0, 10, Color(1.0, 0.95, 0.75, 0.55), 2.0)

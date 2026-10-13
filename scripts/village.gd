@@ -76,12 +76,12 @@ func _ready() -> void:
 	add_child(_npc("ルカ", "おかえり。まずは食べて休みな。", Color(0.55, 0.42, 0.3), 1700.0))
 
 	player = Player.new()
-	player.position = Vector2(ENTRANCE_PX + 60.0, GROUND_Y * T - 14)
+	player.position = Vector2(ENTRANCE_PX + 60.0, GROUND_Y * T - Player.BODY.y / 2.0)
 	add_child(player)
 	player.light.enabled = false
 	player.set_camera_limits(Rect2(0, BASE_TOP, WIDTH * T, 746))
 
-	hud.set_hint("移動 A/D　ジャンプ Space（長押しで滑空）　攻撃 J　ダッシュ K　話す・坑道に入る・作業台 E　建築モード B")
+	hud.set_hint("歩く A/D　走る K長押し　ジャンプ Space（長押しで滑空）　攻撃 J　ダッシュ K　話す・坑道に入る・作業台 E　建築モード B")
 	if Game.queued_message == "" and Game.built.is_empty():
 		Game.post("根灯りの村。坑道で材料を集め、右の空き地に小屋を建てよう。")
 

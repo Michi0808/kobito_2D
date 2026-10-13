@@ -45,17 +45,21 @@ var ui_theme: Theme
 ## 場面が切り替わった直後に表示するメッセージ
 var queued_message := ""
 var saving_enabled := true
+var bgm: AudioStreamPlayer
 
 
 func _ready() -> void:
 	_setup_input()
 	_setup_theme()
+	_setup_bgm()
 	load_game()
 	var args := OS.get_cmdline_user_args()
 	if "--smoke" in args:
 		add_child(load("res://tests/smoke.gd").new())
 	elif "--shots" in args:
 		add_child(load("res://tests/shots.gd").new())
+	elif "--poses" in args:
+		add_child(load("res://tests/poses.gd").new())
 
 
 # ---- 持ち物 ----
@@ -252,6 +256,20 @@ func _add_action(action: String, keys: Array, buttons: Array = [], axis := -1, a
 		m.axis = axis
 		m.axis_value = axis_dir
 		InputMap.action_add_event(action, m)
+
+
+## audio/main_bgm.ogg（または .mp3 / .wav）を置くと、村でも坑道でもずっと流れる
+func _setup_bgm() -> void:
+	bgm = AudioStreamPlayer.new()
+	bgm.volume_db = -6.0
+	add_child(bgm)
+	for ext in ["ogg", "mp3", "wav"]:
+		var path: String = "res://audio/main_bgm." + ext
+		if ResourceLoader.exists(path):
+			bgm.stream = load(path)
+			bgm.finished.connect(bgm.play)
+			bgm.play()
+			return
 
 
 func _setup_theme() -> void:
