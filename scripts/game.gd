@@ -259,17 +259,23 @@ func _add_action(action: String, keys: Array, buttons: Array = [], axis := -1, a
 
 
 ## audio/main_bgm.ogg（または .mp3 / .wav）を置くと、村でも坑道でもずっと流れる
+## 村でも坑道でも流れる曲。差し替えるときはここのファイル名を変える
+const MAIN_BGM := "res://audio/rootlight_village_8bit.ogg"
+
+
 func _setup_bgm() -> void:
 	bgm = AudioStreamPlayer.new()
 	bgm.volume_db = -6.0
 	add_child(bgm)
-	for ext in ["ogg", "mp3", "wav"]:
-		var path: String = "res://audio/main_bgm." + ext
-		if ResourceLoader.exists(path):
-			bgm.stream = load(path)
-			bgm.finished.connect(bgm.play)
-			bgm.play()
-			return
+	if not ResourceLoader.exists(MAIN_BGM):
+		return
+	var stream: AudioStream = load(MAIN_BGM)
+	if "loop" in stream:
+		stream.loop = true
+	else:
+		bgm.finished.connect(bgm.play)
+	bgm.stream = stream
+	bgm.play()
 
 
 func _setup_theme() -> void:
@@ -280,3 +286,9 @@ func _setup_theme() -> void:
 	ui_theme.default_font_size = 18
 	ui_theme.set_constant("outline_size", "Label", 6)
 	ui_theme.set_color("font_outline_color", "Label", Color(0.08, 0.05, 0.03))
+
+
+func _exit_tree() -> void:
+	# 終了時に曲を手放しておく（残っていると終了時に警告が出る）
+	bgm.stop()
+	bgm.stream = null
