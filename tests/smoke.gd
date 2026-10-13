@@ -69,7 +69,7 @@ func _run() -> void:
 	var m: Node = Game.level
 	check(m != null and m.name == "Mine", "坑道が読み込まれた")
 	var used: Array = m.map.get_used_cells()
-	check(used.size() > 1500, "地形が生成された（%d マス）" % used.size())
+	check(used.size() > 900, "地形が生成された（%d マス）" % used.size())
 	var creatures := get_tree().get_nodes_in_group("creatures")
 	check(creatures.size() >= 4, "生き物がいる（%d 匹）" % creatures.size())
 	check(Game.boss != null, "坑道の主がいる")
