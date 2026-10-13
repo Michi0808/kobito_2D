@@ -17,6 +17,7 @@ const DASH_COOLDOWN := 0.55
 const COYOTE_TIME := 0.1
 const JUMP_BUFFER := 0.12
 const ATTACK_COOLDOWN := 0.26
+const CLIMB_SPEED := 130.0
 ## 当たり判定。絵は少し大きいが、2マス（64px）の通路を通れるように高さは 60 に収める
 const BODY := Vector2(26, 60)
 
@@ -32,6 +33,7 @@ var attack_cd := 0.0
 var attack_show := 0.0
 var attack_dir := Vector2.RIGHT
 var gliding := false
+var climbing := false
 var air_dash_used := false
 var controls_locked := false
 var camera: Camera2D
@@ -123,13 +125,38 @@ func _physics_process(delta: float) -> void:
 	else:
 		jump_buf -= delta
 
+	# はしご：上下を押すとつかまる。ジャンプで離れる
+	var input_y := 0.0 if controls_locked else Input.get_axis("up", "down")
+	var on_ladder: bool = Game.level != null and Game.level.has_method("is_ladder") and Game.level.is_ladder(global_position)
+	if climbing and not on_ladder:
+		climbing = false
+		if input_y < 0.0:
+			# 上の端まで登りきったら、床に上がれるよう少し跳ねる
+			velocity.y = JUMP_VELOCITY * 0.55
+	elif not climbing and on_ladder and knock <= 0.0 and dash_t <= 0.0:
+		if input_y < 0.0 or (input_y > 0.0 and not on_floor):
+			climbing = true
+
 	if knock > 0.0:
+		climbing = false
 		knock -= delta
 		velocity.y = minf(velocity.y + GRAVITY * delta, MAX_FALL)
 		gliding = false
 	elif dash_t > 0.0:
 		dash_t -= delta
 		velocity = Vector2(facing * DASH_SPEED, 0.0)
+	elif climbing:
+		if input_x != 0.0:
+			facing = 1 if input_x > 0.0 else -1
+		velocity = Vector2(input_x * WALK_SPEED * 0.5, input_y * CLIMB_SPEED)
+		gliding = false
+		air_dash_used = false
+		if jump_buf > 0.0:
+			climbing = false
+			jump_buf = 0.0
+			velocity.y = JUMP_VELOCITY * 0.8
+		if not controls_locked and Input.is_action_just_pressed("attack") and attack_cd <= 0.0:
+			_attack()
 	else:
 		if input_x != 0.0:
 			facing = 1 if input_x > 0.0 else -1

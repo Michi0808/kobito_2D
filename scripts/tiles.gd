@@ -13,7 +13,8 @@ const LIVING_ROOT := 4
 const BARK := 5
 const LEAF := 6
 const GROUND := 7
-const COUNT := 8
+const PLANK := 8  # 吊り橋の板（下からすり抜け）
+const COUNT := 9
 
 ## 掘るのに必要な打撃の合計（つるはしの強さぶん減っていく）
 const HARDNESS := {DIRT: 1, ROCK: 4, AMBER: 3, BARK: 2}
@@ -25,6 +26,11 @@ static var _tileset: TileSet
 
 static func is_breakable(id: int) -> bool:
 	return HARDNESS.has(id)
+
+
+## 下からすり抜けて上に乗れる足場
+static func is_platform(id: int) -> bool:
+	return id == LEAF or id == PLANK
 
 
 static func get_tileset() -> TileSet:
@@ -54,8 +60,8 @@ static func get_tileset() -> TileSet:
 		src.create_tile(coords)
 		var td := src.get_tile_data(coords, 0)
 		td.add_collision_polygon(0)
-		if i == LEAF:
-			# 葉っぱの足場は下からすり抜けて上に乗れる
+		if is_platform(i):
+			# 葉っぱの足場と吊り橋は下からすり抜けて上に乗れる
 			td.set_collision_polygon_points(0, 0, thin)
 			td.set_collision_polygon_one_way(0, 0, true)
 		else:
@@ -113,6 +119,10 @@ static func _paint(img: Image, i: int, rng: RandomNumberGenerator) -> void:
 					img.set_pixel(ox + x, y, g)
 			for x in range(0, SIZE, 2):
 				img.set_pixel(ox + x, 3, Color(0.5, 0.75, 0.35))
+		PLANK:
+			for y in 8:
+				for x in SIZE:
+					img.set_pixel(ox + x, y, Color(0.6, 0.42, 0.25) if x % 7 != 0 else Color(0.3, 0.2, 0.1))
 		GROUND:
 			for y in 5:
 				for x in SIZE:
