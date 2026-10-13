@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ptctgidcxcm"
-path="res://.godot/imported/mid_rock_1.png-f1acd4d2551dfb3edb383131b75b4e87.ctex"
+uid="uid://bqhnhy0h77es"
+path="res://.godot/imported/deco_lantern_v2.png-1c03a3fc997b04f628a32a1552b8ef37.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/mine/mid_rock_1.png"
-dest_files=["res://.godot/imported/mid_rock_1.png-f1acd4d2551dfb3edb383131b75b4e87.ctex"]
+source_file="res://art/mine/deco_lantern_v2.png"
+dest_files=["res://.godot/imported/deco_lantern_v2.png-1c03a3fc997b04f628a32a1552b8ef37.ctex"]
 
 [params]
 

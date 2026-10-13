@@ -379,10 +379,13 @@ func _paint_view(cell: Vector2i) -> void:
 		mask |= 4
 	if _solid_for_view(cell + Vector2i.LEFT):
 		mask |= 8
+	var vx := posmod(cell.x, MineArt.VARIANTS)
+	var vy := posmod(cell.y, MineArt.VARIANTS)
 	if mask == 15:
-		ground_view.set_cell(cell, MineArt.SRC_FILL, Vector2i(h % 4, 0))
+		ground_view.set_cell(cell, MineArt.SRC_FILL, Vector2i(vx, vy))
 	else:
-		ground_view.set_cell(cell, MineArt.SRC_TERRAIN, Vector2i(mask % 4, mask / 4))
+		# 上下とも続く（縦の壁面）なら縦方向、それ以外は横方向に柄を送ると、縁の帯が途切れない
+		ground_view.set_cell(cell, MineArt.SRC_TERRAIN, Vector2i(vy if mask & 5 == 5 else vx, mask))
 	if MineArt.SRC_ORE.has(id):
 		ore_view.set_cell(cell, MineArt.SRC_ORE[id], Vector2i(h % 2, 0))
 	else:
@@ -430,27 +433,28 @@ func _decorate() -> void:
 				var roll := r.randf()
 				var tall := tile_at(cell + Vector2i(0, -2)) < 0 and tile_at(cell + Vector2i(0, -3)) < 0
 				if id == Tiles.AMBER and roll < 0.6:
-					var cr := MineArt.sprite("deco_crystal", top + Vector2(0, 4))
+					var cr := MineArt.sprite("deco_crystal", top + Vector2(0, 4), false, r)
 					cr.add_child(MineArt.light(Color(1.0, 0.65, 0.25), 1.6, 0.7))
 					_add_decor(cell, cr)
 				elif tall and roll < 0.05 and int(lanterns_in_room.get(room, 0)) < 2:
 					lanterns_in_room[room] = int(lanterns_in_room.get(room, 0)) + 1
-					var la := MineArt.sprite("deco_lantern", top + Vector2(0, 2))
+					var la := MineArt.sprite("deco_lantern", top + Vector2(0, 2), false, r)
 					var l := MineArt.light(Color(1.0, 0.72, 0.38), 3.2, 1.0)
-					l.position = Vector2(14, -18) / MineArt.SCALE
+					# 灯りは絵の中のランタンの位置に（どちらの絵か見て決める）
+					l.position = Vector2(13, -17) if la.texture.resource_path.ends_with("_v2.png") else Vector2(-14, -3)
 					la.add_child(l)
 					la.flip_h = r.randf() < 0.5
 					if la.flip_h:
 						l.position.x = -l.position.x
 					_add_decor(cell, la)
 				elif roll < 0.4:
-					_add_decor(cell, MineArt.sprite("deco_moss", top + Vector2(0, 5)))
+					_add_decor(cell, MineArt.sprite("deco_moss", top + Vector2(0, 5), false, r))
 				elif roll < 0.5:
-					_add_decor(cell, MineArt.sprite("deco_pebbles", top + Vector2(0, 2)))
+					_add_decor(cell, MineArt.sprite("deco_pebbles", top + Vector2(0, 2), false, r))
 				elif roll < 0.53 and tall:
-					_add_decor(cell, MineArt.sprite("deco_basket", top + Vector2(0, 2)))
+					_add_decor(cell, MineArt.sprite("deco_basket", top + Vector2(0, 2), false, r))
 			if air_below and r.randf() < 0.18:
-				var rt := MineArt.sprite("deco_roots_hang", bottom - Vector2(0, 4), true)
+				var rt := MineArt.sprite("deco_roots_hang", bottom - Vector2(0, 4), true, r)
 				rt.z_index = -1
 				_add_decor(cell, rt)
 
@@ -465,7 +469,7 @@ func _build_backdrop() -> void:
 	var far := Parallax2D.new()
 	far.scroll_scale = Vector2(0.25, 0.25)
 	var ft := MineArt.tex("far")
-	var fs := 1080.0 / ft.get_height()
+	var fs := 1080.0 / ft.get_height()  # 遠景は 1920×1080 で描く
 	far.repeat_size = Vector2(ft.get_width() * fs, 0)
 	far.repeat_times = 3
 	far.z_index = -15
@@ -481,14 +485,14 @@ func _build_backdrop() -> void:
 	var mid := Parallax2D.new()
 	mid.scroll_scale = Vector2(0.8, 0.8)
 	mid.z_index = -10
-	var mids := ["mid_rock_1", "mid_rock_2", "mid_rock_3", "mid_root_1"]
-	for i in GW * GH * 3:
+	var mids := ["mid_rock_wall", "mid_root_arch", "mid_tunnel", "mid_rock_wall", "mid_root_arch", "mid_pulley", "mid_workshop"]
+	for i in GW * GH * 2:
 		var sp := Sprite2D.new()
 		sp.texture = MineArt.tex(mids[r.randi_range(0, mids.size() - 1)])
 		sp.position = Vector2(r.randf_range(0, world.x), r.randf_range(0, world.y)) * 0.85
-		sp.scale = Vector2.ONE * r.randf_range(0.5, 0.8)
+		sp.scale = Vector2.ONE * r.randf_range(0.35, 0.5)
 		sp.flip_h = r.randf() < 0.5
-		sp.modulate = Color(0.3, 0.3, 0.36)
+		sp.modulate = Color(0.27, 0.28, 0.36)
 		mid.add_child(sp)
 	add_child(mid)
 
@@ -498,7 +502,7 @@ func _build_backdrop() -> void:
 	fg.z_index = 50
 	for i in GW * GH / 2:
 		var sp := Sprite2D.new()
-		sp.texture = MineArt.tex("fg_root_1")
+		sp.texture = MineArt.tex("fg_roots" if r.randf() < 0.5 else "fg_vines")
 		sp.position = Vector2(r.randf_range(0, world.x), r.randf_range(0, world.y)) * 1.25
 		sp.scale = Vector2.ONE * r.randf_range(0.7, 1.0)
 		sp.flip_h = r.randf() < 0.5

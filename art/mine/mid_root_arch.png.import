@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dmodvawsxsrwl"
-path="res://.godot/imported/mid_rock_3.png-fc2ab156e9ee6c3736fb2cfc1105beae.ctex"
+uid="uid://b23wgwe8deiol"
+path="res://.godot/imported/mid_root_arch.png-e2110475d92b0c47614ca1402c68323f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/mine/mid_rock_3.png"
-dest_files=["res://.godot/imported/mid_rock_3.png-fc2ab156e9ee6c3736fb2cfc1105beae.ctex"]
+source_file="res://art/mine/mid_root_arch.png"
+dest_files=["res://.godot/imported/mid_root_arch.png-e2110475d92b0c47614ca1402c68323f.ctex"]
 
 [params]
 

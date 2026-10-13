@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dih5u5d57vdri"
-path="res://.godot/imported/mid_rock_2.png-cfdcfc5d0f89a676d19591ee31ea9340.ctex"
+uid="uid://bajs8fym5vvt0"
+path="res://.godot/imported/mid_pulley.png-8d22cd50eb045d1a6471efbdd22588d1.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/mine/mid_rock_2.png"
-dest_files=["res://.godot/imported/mid_rock_2.png-cfdcfc5d0f89a676d19591ee31ea9340.ctex"]
+source_file="res://art/mine/mid_pulley.png"
+dest_files=["res://.godot/imported/mid_pulley.png-8d22cd50eb045d1a6471efbdd22588d1.ctex"]
 
 [params]
 

@@ -10,13 +10,14 @@ const CELL := 64
 const SCALE := float(Tiles.SIZE) / CELL
 
 ## 見た目用タイルセットの中の番号
-const SRC_TERRAIN := 0  # terrain.png      4×4（番号 = 上1 + 右2 + 下4 + 左8 が続いているか）
-const SRC_FILL := 1  # terrain_fill.png 4×1（四方とも続いているマスの柄違い）
+const SRC_TERRAIN := 0  # terrain.png      8×16（行 = 上1 + 右2 + 下4 + 左8 が続いているか、列 = 柄 8 通り）
+const SRC_FILL := 1  # terrain_fill.png 8×8（四方とも続いているマス。位置で選ぶ）
+const VARIANTS := 8
 const SRC_ORE := {Tiles.ROCK: 2, Tiles.AMBER: 3, Tiles.BARK: 4, Tiles.LIVING_ROOT: 5, Tiles.BEDROCK: 6}
 const SRC_PLATFORM := {Tiles.LEAF: 7, Tiles.PLANK: 8}
 
 const ORE_FILES := {2: "ore_rock", 3: "ore_amber", 4: "ore_bark", 5: "ore_root", 6: "ore_bedrock"}
-const PLATFORM_FILES := {7: "platform_leaf", 8: "platform_plank"}
+const PLATFORM_FILES := {7: "platform_root", 8: "platform_plank"}
 
 static var _tileset: TileSet
 
@@ -30,8 +31,8 @@ static func get_tileset() -> TileSet:
 		return _tileset
 	var ts := TileSet.new()
 	ts.tile_size = Vector2i(CELL, CELL)
-	_add_sheet(ts, SRC_TERRAIN, "terrain", Vector2i(4, 4))
-	_add_sheet(ts, SRC_FILL, "terrain_fill", Vector2i(4, 1))
+	_add_sheet(ts, SRC_TERRAIN, "terrain", Vector2i(VARIANTS, 16))
+	_add_sheet(ts, SRC_FILL, "terrain_fill", Vector2i(VARIANTS, VARIANTS))
 	for id in ORE_FILES:
 		_add_sheet(ts, id, ORE_FILES[id], Vector2i(2, 1))
 	for id in PLATFORM_FILES:
@@ -50,9 +51,12 @@ static func _add_sheet(ts: TileSet, id: int, file: String, cells: Vector2i) -> v
 			src.create_tile(Vector2i(x, y))
 
 
-## 置き物（飾り・はしご・中景など）。足元（下端の中央）を pos に合わせる
-static func sprite(name: String, pos: Vector2, hang := false) -> Sprite2D:
+## 置き物（飾り・はしご・中景など）。足元（下端の中央）を pos に合わせる。
+## 別案（名前_v2）があれば rng で選ぶ
+static func sprite(name: String, pos: Vector2, hang := false, rng: RandomNumberGenerator = null) -> Sprite2D:
 	var s := Sprite2D.new()
+	if rng != null and rng.randf() < 0.5 and ResourceLoader.exists(DIR + name + "_v2.png"):
+		name += "_v2"
 	s.texture = tex(name)
 	s.scale = Vector2(SCALE, SCALE)
 	s.centered = true
