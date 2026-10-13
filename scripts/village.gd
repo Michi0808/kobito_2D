@@ -1,11 +1,19 @@
 extends Node2D
-## 根灯りの村（試作では根元の一画だけ）。坑道への入口と、自由に建築できる空き地がある。
+## 根灯りの村（試作では根元の一画だけ）。
+## 左側は描いた背景絵（坑道の入口・工房・市場）をそのまま使い、右側が自由に建築できる空き地。
 
 const T := Tiles.SIZE
-const WIDTH := 70
 const GROUND_Y := 16
-const ENTRANCE_X := 6
-const BUILD_AREA := Rect2i(18, 3, 46, 13)  # x 18〜63, y 3〜15
+## 背景絵 art/village_base.png の置き方。絵の中の通り道が地面（GROUND_Y）に重なるように合わせてある
+const BASE_ART := "res://art/village_base.png"
+const BASE_SCALE := 1.0313
+const BASE_TOP := -71.0
+const BASE_W := 70           # 絵の幅（マス）
+## 絵の中の坑道の入口（x 座標）
+const ENTRANCE_PX := 476.0
+## 空き地は絵の右側
+const WIDTH := 112
+const BUILD_AREA := Rect2i(72, 3, 38, 13)  # x 72〜109, y 3〜15
 
 var map: TileMapLayer
 var player: Player
@@ -17,41 +25,44 @@ func _ready() -> void:
 	Game.level = self
 	Game.boss = null
 
+	# 空き地側の奥に見える森（仮の図形）
 	var sky := Parallax2D.new()
-	sky.scroll_scale = Vector2(0.3, 0.5)
+	sky.scroll_scale = Vector2(0.4, 0.6)
 	sky.z_index = -20
 	add_child(sky)
 	var far := Node2D.new()
 	far.draw.connect(_draw_far.bind(far))
 	sky.add_child(far)
 
-	var tree := Parallax2D.new()
-	tree.scroll_scale = Vector2(0.7, 0.85)
-	tree.z_index = -15
-	add_child(tree)
-	var trunk := Node2D.new()
-	trunk.draw.connect(_draw_trunk.bind(trunk))
-	tree.add_child(trunk)
+	# 村の背景絵
+	var base := Sprite2D.new()
+	base.texture = load(BASE_ART)
+	base.centered = false
+	base.scale = Vector2(BASE_SCALE, BASE_SCALE)
+	base.position = Vector2(0, BASE_TOP)
+	base.z_index = -10
+	add_child(base)
 
 	map = TileMapLayer.new()
 	map.tile_set = Tiles.get_tileset()
 	add_child(map)
-	for x in range(-1, WIDTH + 1):
+	# 絵の部分は絵の中の通り道が地面なので、当たり判定だけ置く
+	var floor_body := StaticBody2D.new()
+	var cs := CollisionShape2D.new()
+	var sh := RectangleShape2D.new()
+	sh.size = Vector2(BASE_W * T, 6 * T)
+	cs.shape = sh
+	cs.position = Vector2(BASE_W * T / 2.0, GROUND_Y * T + 3 * T)
+	floor_body.add_child(cs)
+	add_child(floor_body)
+	# 空き地はタイルの地面
+	for x in range(BASE_W, WIDTH + 1):
 		map.set_cell(Vector2i(x, GROUND_Y), 0, Vector2i(Tiles.GROUND, 0))
 		for y in range(GROUND_Y + 1, GROUND_Y + 6):
 			map.set_cell(Vector2i(x, y), 0, Vector2i(Tiles.DIRT, 0))
 	for y in range(-10, GROUND_Y):
 		map.set_cell(Vector2i(-1, y), 0, Vector2i(Tiles.LIVING_ROOT, 0))
 		map.set_cell(Vector2i(WIDTH, y), 0, Vector2i(Tiles.LIVING_ROOT, 0))
-	# 坑道の上の根の張り出し（葉っぱの足場）
-	for x in range(10, 15):
-		map.set_cell(Vector2i(x, 12), 0, Vector2i(Tiles.LEAF, 0))
-	for x in range(2, 6):
-		map.set_cell(Vector2i(x, 9), 0, Vector2i(Tiles.LEAF, 0))
-
-	var mod := CanvasModulate.new()
-	mod.color = Color(0.95, 0.9, 0.82)
-	add_child(mod)
 
 	hud = HUD.new()
 	add_child(hud)
@@ -60,31 +71,31 @@ func _ready() -> void:
 	build.setup(BUILD_AREA, map, hud)
 	add_child(build)
 
-	add_child(_npc("バルド", "坑道の下の段は暗い。ランタンを作ってから行け。", Color(0.35, 0.33, 0.3), ENTRANCE_X + 3))
-	add_child(_npc("ネリ", "作業台を屋根と左右の壁で囲うと工房になるよ。ランタンはそこで作れる。", Color(0.38, 0.45, 0.58), 22))
-	add_child(_npc("ルカ", "おかえり。まずは食べて休みな。", Color(0.55, 0.42, 0.3), 66))
+	add_child(_npc("バルド", "坑道の下の段は暗い。ランタンを作ってから行け。", Color(0.35, 0.33, 0.3), ENTRANCE_PX + 110.0))
+	add_child(_npc("ネリ", "右の空き地で、作業台を屋根と左右の壁で囲うと工房になるよ。ランタンはそこで作れる。", Color(0.38, 0.45, 0.58), 1010.0))
+	add_child(_npc("ルカ", "おかえり。まずは食べて休みな。", Color(0.55, 0.42, 0.3), 1700.0))
 
 	player = Player.new()
-	player.position = Vector2((ENTRANCE_X + 1) * T, GROUND_Y * T - 14)
+	player.position = Vector2(ENTRANCE_PX + 60.0, GROUND_Y * T - 14)
 	add_child(player)
 	player.light.enabled = false
-	player.set_camera_limits(Rect2(-T, -T * 10, (WIDTH + 2) * T, (GROUND_Y + 14) * T))
+	player.set_camera_limits(Rect2(0, BASE_TOP, WIDTH * T, 746))
 
 	hud.set_hint("移動 A/D　ジャンプ Space（長押しで滑空）　攻撃 J　ダッシュ K　話す・坑道に入る・作業台 E　建築モード B")
 	if Game.queued_message == "" and Game.built.is_empty():
-		Game.post("根灯りの村。左の坑道で材料を集め、空き地に小屋を建てよう。")
+		Game.post("根灯りの村。坑道で材料を集め、右の空き地に小屋を建てよう。")
 
 
-func _npc(n: String, text: String, c: Color, x: int) -> Npc:
+func _npc(n: String, text: String, c: Color, x: float) -> Npc:
 	var npc := Npc.new().setup(n, text, c)
-	npc.position = Vector2(x * T + T / 2.0, GROUND_Y * T - 13)
+	npc.position = Vector2(x, GROUND_Y * T - 13)
 	return npc
 
 
 func on_interact() -> void:
 	if Time.get_ticks_msec() - hud.craft_closed_at < 300:
 		return
-	if absf(player.global_position.x - (ENTRANCE_X * T + T / 2.0)) < 40.0:
+	if absf(player.global_position.x - ENTRANCE_PX) < 48.0:
 		player.controls_locked = true
 		Game.goto_mine()
 		return
@@ -102,35 +113,17 @@ func on_player_down() -> void:
 
 
 func _draw() -> void:
-	# 坑道の入口（黒い母岩に掘られた坑口と支柱）
-	var o := Vector2(ENTRANCE_X * T + T / 2.0, GROUND_Y * T)
-	draw_colored_polygon(PackedVector2Array([o + Vector2(-34, 0), o + Vector2(-30, -60), o + Vector2(0, -74), o + Vector2(30, -60), o + Vector2(34, 0)]), Color(0.12, 0.1, 0.09))
-	draw_rect(Rect2(o + Vector2(-36, -66), Vector2(8, 66)), Color(0.5, 0.34, 0.2))
-	draw_rect(Rect2(o + Vector2(28, -66), Vector2(8, 66)), Color(0.5, 0.34, 0.2))
-	draw_rect(Rect2(o + Vector2(-40, -72), Vector2(80, 8)), Color(0.45, 0.3, 0.18))
-	draw_circle(o + Vector2(-46, -50), 5.0, Color(1.0, 0.72, 0.3))
-	draw_circle(o + Vector2(46, -50), 5.0, Color(1.0, 0.72, 0.3))
-	draw_line(o + Vector2(-20, 0), o + Vector2(-20, -4), Color(0.4, 0.4, 0.42), 2.0)
-	draw_line(o + Vector2(-26, -2), o + Vector2(26, -2), Color(0.4, 0.4, 0.42), 2.0)
+	# 空き地の入口の立て札
+	var o := Vector2(BUILD_AREA.position.x * T - 40, GROUND_Y * T)
+	draw_rect(Rect2(o + Vector2(-2, -40), Vector2(4, 40)), Color(0.4, 0.28, 0.16))
+	draw_rect(Rect2(o + Vector2(-18, -44), Vector2(36, 16)), Color(0.6, 0.45, 0.28))
 
 
 func _draw_far(n: Node2D) -> void:
-	n.draw_rect(Rect2(-2000, -1200, 6000, 2400), Color(0.55, 0.7, 0.62))
-	for i in 9:
-		var x := -400.0 + i * 420.0
-		n.draw_rect(Rect2(x, -900, 90 + (i % 3) * 30, 1800), Color(0.42, 0.56, 0.5))
-
-
-func _draw_trunk(n: Node2D) -> void:
-	# 世界樹の幹と根（仮の形）。画面の奥に大きくそびえ、左右に空と森が見える
-	var c := Color(0.42, 0.32, 0.23)
-	n.draw_colored_polygon(PackedVector2Array([
-		Vector2(420, 560), Vector2(640, -1400), Vector2(1380, -1400), Vector2(1600, 560)]), c)
-	for i in 5:
-		var x := 700.0 + i * 160.0
-		n.draw_polyline(PackedVector2Array([Vector2(x, -1300), Vector2(x + 20, -500), Vector2(x - 15, 100), Vector2(x + 10, 560)]), c.darkened(0.2), 8.0)
-	n.draw_colored_polygon(PackedVector2Array([Vector2(150, 560), Vector2(520, 260), Vector2(700, 560)]), c.darkened(0.08))
-	n.draw_colored_polygon(PackedVector2Array([Vector2(1350, 560), Vector2(1560, 240), Vector2(1950, 560)]), c.darkened(0.08))
-	# 幹の空洞の住まいの灯り
-	for i in 5:
-		n.draw_circle(Vector2(760 + i * 120, -40 - (i % 2) * 140), 6.0, Color(1.0, 0.75, 0.35))
+	# 空き地の奥の森（仮）。背景絵と色味を合わせた木立と根
+	n.draw_rect(Rect2(-2000, -1200, 8000, 2400), Color(0.5, 0.6, 0.5))
+	for i in 16:
+		var x := -400.0 + i * 340.0
+		n.draw_rect(Rect2(x, -900, 110 + (i % 3) * 50, 1800), Color(0.36, 0.3, 0.22))
+		n.draw_circle(Vector2(x + 60, -60 + (i % 4) * 30), 140.0, Color(0.33, 0.45, 0.27))
+	n.draw_rect(Rect2(-2000, 260, 8000, 500), Color(0.3, 0.36, 0.22))

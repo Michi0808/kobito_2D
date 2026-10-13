@@ -24,24 +24,28 @@ func shot(name: String) -> void:
 
 
 func _run() -> void:
-	await frames(10)
+	await frames(40)
+	await shot("00_village_market")
+	Game.player.global_position = Vector2(1300, 16 * 32 - 14)
+	await frames(60)
+	await shot("00b_village_shops")
 	var b: BuildSystem = Game.level.build
 	Game.add_item("bark", 40, false)
 	Game.add_item("stone", 10, false)
 	Game.add_item("shell", 10, false)
 	Game.add_item("silk", 5, false)
 	Game.add_item("amber", 5, false)
-	for x in range(26, 35):
+	for x in range(76, 85):
 		b.place("back", Vector2i(x, 14))
 		b.place("back", Vector2i(x, 15))
 		b.place("roof", Vector2i(x, 13))
-	b.place("wall", Vector2i(25, 14))
-	b.place("door", Vector2i(25, 15))
-	b.place("wall", Vector2i(35, 14))
-	b.place("wall", Vector2i(35, 15))
-	b.place("bench", Vector2i(30, 15))
-	b.place("lamp", Vector2i(28, 14))
-	Game.player.global_position = Vector2(30 * 32, 16 * 32 - 14)
+	b.place("wall", Vector2i(75, 14))
+	b.place("door", Vector2i(75, 15))
+	b.place("wall", Vector2i(85, 14))
+	b.place("wall", Vector2i(85, 15))
+	b.place("bench", Vector2i(80, 15))
+	b.place("lamp", Vector2i(78, 14))
+	Game.player.global_position = Vector2(80 * 32, 16 * 32 - 14)
 	await frames(40)
 	await shot("01_village")
 	b.toggle()

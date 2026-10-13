@@ -37,17 +37,17 @@ func _run() -> void:
 	Game.add_item("stone", 10, false)
 	Game.add_item("shell", 10, false)
 	Game.add_item("silk", 5, false)
-	check(b.place("bench", Vector2i(30, 15)), "作業台を置けた")
-	check(not b.is_workshop(Vector2i(30, 15)), "囲う前は工房として働かない")
+	check(b.place("bench", Vector2i(80, 15)), "作業台を置けた")
+	check(not b.is_workshop(Vector2i(80, 15)), "囲う前は工房として働かない")
 	for y in [14, 15]:
-		check(b.place("wall", Vector2i(27, y)), "左の壁 y=%d" % y)
-		check(b.place("wall", Vector2i(33, y)), "右の壁 y=%d" % y)
-	for x in range(27, 34):
+		check(b.place("wall", Vector2i(77, y)), "左の壁 y=%d" % y)
+		check(b.place("wall", Vector2i(83, y)), "右の壁 y=%d" % y)
+	for x in range(77, 84):
 		b.place("roof", Vector2i(x, 13))
-	check(b.is_workshop(Vector2i(30, 15)), "屋根と壁で囲うと工房になる")
+	check(b.is_workshop(Vector2i(80, 15)), "屋根と壁で囲うと工房になる")
 	check(not b.place("wall", Vector2i(10, 15)), "建築範囲の外には置けない")
-	check(b.remove_at(Vector2i(33, 14)), "部品を外せる")
-	check(b.place("wall", Vector2i(33, 14)), "外した場所にまた置ける")
+	check(b.remove_at(Vector2i(83, 14)), "部品を外せる")
+	check(b.place("wall", Vector2i(83, 14)), "外した場所にまた置ける")
 
 	Game.add_item("amber", 3, false)
 	check(Game.craft("lantern"), "ランタンを作れた")
@@ -139,7 +139,7 @@ func _run() -> void:
 	await get_tree().create_timer(1.3).timeout
 	await frames(5)
 	check(Game.level != null and Game.level.name == "Village", "村へ運ばれた")
-	check(Game.level.build.is_workshop(Vector2i(30, 15)), "建てた工房が残っている")
+	check(Game.level.build.is_workshop(Vector2i(80, 15)), "建てた工房が残っている")
 
 	print("== 坑道（2回目）")
 	Game.goto_mine()
