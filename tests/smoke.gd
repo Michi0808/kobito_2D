@@ -199,5 +199,122 @@ func _run() -> void:
 	Input.action_release("move_left")
 	check(Game.player.global_position.y < Game.level.map_h * Tiles.SIZE, "地形の外に落ちていない")
 
+	await _forest()
+
 	print("SMOKE FAILED" if failed else "SMOKE OK")
 	get_tree().quit(1 if failed else 0)
+
+
+func _forest() -> void:
+	print("== 森")
+	Game.finish_run()
+	await frames(10)
+	var v: Node = Game.level
+	(Game.player as Player).global_position = Vector2(v.FOREST_PX, 16 * 32 - 30)
+	v.on_interact()
+	await frames(10)
+	var f: Node = Game.level
+	check(f != null and f.name == "Forest", "村の右端から森に入った")
+	check(Game.bgm_path == Game.FOREST_BGM, "森の曲に替わった")
+	var p := Game.player as Player
+	await frames(20)
+	check(p.is_on_floor(), "森の地面に立っている")
+	var hanging := get_tree().get_nodes_in_group("berries").filter(func(b: Berry) -> bool: return b.hanging)
+	check(hanging.size() >= 20, "枝に実がなっている（%d 個）" % hanging.size())
+
+	# 籠の真上の枝の実を叩くと落ちて籠に入る
+	var basket_x: float = f.baskets[0]["area"].get_child(0).global_position.x
+	var target: Berry = null
+	for b in hanging:
+		if b.ripe() and absf(b.global_position.x - basket_x) < 40.0:
+			target = b
+			break
+	check(target != null, "籠の上に熟した実がある")
+	var before := int(Game.inv["berry_black"]) + int(Game.inv["berry_red"])
+	check(target.on_hit(1, Vector2.UP, target.global_position + Vector2(0, 40)), "実を叩けた")
+	await frames(150)
+	check(target.in_basket, "落ちた実が籠に入った")
+	check(int(Game.inv["berry_black"]) + int(Game.inv["berry_red"]) == before + 1, "籠に入った実が持ち物に加わった")
+
+	# 熟していない実は落ちない
+	var green: Berry = null
+	for b in hanging:
+		if not b.ripe():
+			green = b
+			break
+	green.on_hit(1, Vector2.UP, green.global_position)
+	await frames(30)
+	check(green.hanging, "青い実は叩いても落ちない")
+
+	# 枝の上で下攻撃すると、その枝の熟した実がまとめて落ちる
+	var br: Dictionary = f.branches[0]
+	p.global_position = Vector2((br["x0"] + br["x1"]) / 2.0, br["top"] - Player.BODY.y / 2.0 - 2.0)
+	p.velocity = Vector2.ZERO
+	await frames(15)
+	check(p.is_on_floor() and absf(p.global_position.y - (br["top"] - Player.BODY.y / 2.0)) < 3.0, "枝の上に立てる")
+	Input.action_press("down")
+	Input.action_press("attack")
+	await frames(2)
+	Input.action_release("attack")
+	Input.action_release("down")
+	await frames(80)
+	var still := 0
+	for b in br["berries"]:
+		if b.ripe() and b.hanging:
+			still += 1
+	check(still == 0, "枝を揺らすと熟した実が全部落ちた")
+
+	# 地面の実を体当たりで動かす
+	var fallen: Berry = null
+	for b in br["berries"]:
+		if b.ripe() and not b.in_basket:
+			fallen = b
+			break
+	await frames(60)
+	p.global_position = fallen.global_position + Vector2(-70, -Player.BODY.y / 2.0 + fallen.radius)
+	p.velocity = Vector2.ZERO
+	p.facing = 1
+	await frames(10)
+	var x0 := fallen.global_position.x
+	Input.action_press("move_right")
+	await frames(70)
+	Input.action_release("move_right")
+	check(fallen.global_position.x > x0 + 30.0, "歩いて押すと実が転がる（%.0f px）" % (fallen.global_position.x - x0))
+	# 体当たりは開けた所で試す
+	fallen = Berry.new().setup("black_m", false)
+	fallen.position = Vector2(1600, -15)
+	f.world.add_child(fallen)
+	await frames(30)
+	x0 = fallen.global_position.x
+	p.global_position = fallen.global_position + Vector2(-40, -Player.BODY.y / 2.0 + fallen.radius)
+	p.facing = 1
+	p.dash_cd = 0.0
+	Input.action_press("dash")
+	await frames(2)
+	Input.action_release("dash")
+	await frames(30)
+	check(fallen.global_position.x > x0 + 60.0, "体当たりで実が弾け飛ぶ（%.0f px）" % (fallen.global_position.x - x0))
+
+	# 坂を押し上げて籠に入れる：籠Aの左の坂のふもとに実を置き、右へ押し続ける
+	var ramp_berry := Berry.new().setup("black_m", false)
+	ramp_berry.position = Vector2(1080, -15)
+	f.world.add_child(ramp_berry)
+	await frames(20)
+	p.global_position = Vector2(1030, -Player.BODY.y / 2.0)
+	p.velocity = Vector2.ZERO
+	var inv_before := int(Game.inv["berry_black"])
+	Input.action_press("move_right")
+	await frames(170)
+	Input.action_release("move_right")
+	await frames(90)
+	check(ramp_berry.in_basket, "葉の坂を押し上げて籠に入れた")
+	check(int(Game.inv["berry_black"]) > inv_before, "坂から入れた実も持ち物に加わった")
+
+	# 入口で E を押すと村へ戻り、森への道の前に立つ
+	p.global_position = Vector2(f.ENTRANCE_X + 20.0, -Player.BODY.y / 2.0)
+	await frames(5)
+	f.on_interact()
+	await frames(10)
+	check(Game.level != null and Game.level.name == "Village", "森から村へ戻った")
+	check(absf(Game.player.global_position.x - Game.level.FOREST_PX) < 80.0, "森への道の前に戻った")
+	check(Game.bgm_path == Game.MAIN_BGM, "村の曲に戻った")

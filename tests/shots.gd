@@ -72,6 +72,17 @@ func _run() -> void:
 		p.global_position = Game.boss.global_position + Vector2(-140, -10)
 		await frames(40)
 		await shot("07_boss")
+
+	Game.goto_forest()
+	await frames(30)
+	await shot("08_forest_entrance")
+	var f: Node = Game.level
+	Game.player.global_position = Vector2(1000, -30)
+	f.shake_branch(f.branches[2])
+	await frames(150)
+	Game.player.global_position = Vector2(1250, -30)
+	await frames(40)
+	await shot("09_forest_basket")
 	get_tree().quit()
 
 

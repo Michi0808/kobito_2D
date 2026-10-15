@@ -14,6 +14,8 @@ const ENTRANCE_PX := 476.0
 ## 空き地は絵の右側
 const WIDTH := 112
 const BUILD_AREA := Rect2i(72, 3, 38, 13)  # x 72〜109, y 3〜15
+## 右端の森（ベリーの森）への道
+const FOREST_PX := (WIDTH - 1.0) * T
 
 var map: TileMapLayer
 var player: Player
@@ -24,6 +26,7 @@ var build: BuildSystem
 func _ready() -> void:
 	Game.level = self
 	Game.boss = null
+	Game.play_bgm(Game.MAIN_BGM)
 
 	# 空き地側の奥に見える森（仮の図形）
 	var sky := Parallax2D.new()
@@ -75,13 +78,24 @@ func _ready() -> void:
 	add_child(_npc("ネリ", "右の空き地で、作業台を屋根と左右の壁で囲うと工房になるよ。ランタンはそこで作れる。", Color(0.38, 0.45, 0.58), 1010.0))
 	add_child(_npc("ルカ", "おかえり。まずは食べて休みな。", Color(0.55, 0.42, 0.3), 1700.0))
 
+	var forest_label := Label.new()
+	forest_label.text = "森へ"
+	forest_label.theme = Game.ui_theme
+	forest_label.add_theme_font_size_override("font_size", 14)
+	forest_label.position = Vector2(FOREST_PX - 22.0, GROUND_Y * T - 63.0)
+	add_child(forest_label)
+
 	player = Player.new()
 	player.position = Vector2(ENTRANCE_PX + 60.0, GROUND_Y * T - Player.BODY.y / 2.0)
+	if Game.arrived_from == "forest":
+		player.position.x = FOREST_PX - 50.0
+		player.facing = -1
+	Game.arrived_from = ""
 	add_child(player)
 	player.light.enabled = false
 	player.set_camera_limits(Rect2(0, BASE_TOP, WIDTH * T, 746))
 
-	hud.set_hint("歩く A/D　走る K長押し　ジャンプ Space（長押しで滑空）　攻撃 J　ダッシュ K　話す・坑道に入る・作業台 E　建築モード B")
+	hud.set_hint("歩く A/D　走る K長押し　ジャンプ Space（長押しで滑空）　攻撃 J　ダッシュ K　話す・坑道や森に入る・作業台 E　建築モード B")
 	if Game.queued_message == "" and Game.built.is_empty():
 		Game.post("根灯りの村。坑道で材料を集め、右の空き地に小屋を建てよう。")
 
@@ -98,6 +112,10 @@ func on_interact() -> void:
 	if absf(player.global_position.x - ENTRANCE_PX) < 48.0:
 		player.controls_locked = true
 		Game.goto_mine()
+		return
+	if absf(player.global_position.x - FOREST_PX) < 56.0:
+		player.controls_locked = true
+		Game.goto_forest()
 		return
 	var bench: Variant = build.bench_near(player.global_position)
 	if bench != null:
@@ -117,6 +135,10 @@ func _draw() -> void:
 	var o := Vector2(BUILD_AREA.position.x * T - 40, GROUND_Y * T)
 	draw_rect(Rect2(o + Vector2(-2, -40), Vector2(4, 40)), Color(0.4, 0.28, 0.16))
 	draw_rect(Rect2(o + Vector2(-18, -44), Vector2(36, 16)), Color(0.6, 0.45, 0.28))
+	# 森への道の立て札（右向きの矢印）
+	var f := Vector2(FOREST_PX, GROUND_Y * T)
+	draw_rect(Rect2(f + Vector2(-3, -48), Vector2(6, 48)), Color(0.4, 0.28, 0.16))
+	draw_colored_polygon(PackedVector2Array([f + Vector2(-28, -62), f + Vector2(32, -62), f + Vector2(42, -51), f + Vector2(32, -40), f + Vector2(-28, -40)]), Color(0.62, 0.46, 0.28))
 
 
 func _draw_far(n: Node2D) -> void:
