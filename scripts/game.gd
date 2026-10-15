@@ -5,17 +5,24 @@ extends Node
 const SAVE_PATH := "user://save.json"
 const VILLAGE_SCENE := "res://scenes/village.tscn"
 const MINE_SCENE := "res://scenes/mine.tscn"
+const FOREST_SCENE := "res://scenes/forest.tscn"
 
-const ITEM_ORDER := ["bark", "stone", "amber", "shell", "silk"]
-const ITEM_NAMES := {"bark": "樹皮", "stone": "石", "amber": "琥珀鉱", "shell": "殻", "silk": "糸"}
+const ITEM_ORDER := ["bark", "stone", "amber", "shell", "silk", "berry_black", "berry_red", "berry_straw"]
+const ITEM_NAMES := {
+	"bark": "樹皮", "stone": "石", "amber": "琥珀鉱", "shell": "殻", "silk": "糸",
+	"berry_black": "黒い木苺", "berry_red": "赤い木苺", "berry_straw": "野苺",
+}
 const ITEM_COLORS := {
 	"bark": Color(0.62, 0.42, 0.25),
 	"stone": Color(0.66, 0.66, 0.7),
 	"amber": Color(1.0, 0.68, 0.18),
 	"shell": Color(0.9, 0.82, 0.62),
 	"silk": Color(0.96, 0.96, 1.0),
+	"berry_black": Color(0.3, 0.18, 0.35),
+	"berry_red": Color(0.85, 0.2, 0.25),
+	"berry_straw": Color(0.9, 0.25, 0.2),
 }
-const START_INV := {"bark": 8, "stone": 4, "amber": 0, "shell": 0, "silk": 0}
+const START_INV := {"bark": 8, "stone": 4, "amber": 0, "shell": 0, "silk": 0, "berry_black": 0, "berry_red": 0, "berry_straw": 0}
 
 ## 工房（作業台）で作れるもの
 const RECIPES := [
@@ -44,8 +51,11 @@ var boss: Node = null
 var ui_theme: Theme
 ## 場面が切り替わった直後に表示するメッセージ
 var queued_message := ""
+## どこから村へ戻ってきたか（"forest" なら森への道の前に立つ）
+var arrived_from := ""
 var saving_enabled := true
 var bgm: AudioStreamPlayer
+var bgm_path := ""
 
 
 func _ready() -> void:
@@ -149,12 +159,19 @@ func goto_mine() -> void:
 	get_tree().call_deferred("change_scene_to_file", MINE_SCENE)
 
 
+func goto_forest() -> void:
+	save_game()
+	run_gain = {}
+	get_tree().call_deferred("change_scene_to_file", FOREST_SCENE)
+
+
 func goto_village() -> void:
 	get_tree().call_deferred("change_scene_to_file", VILLAGE_SCENE)
 
 
 ## 出口か帰還で、持ち物を全部持って村へ戻る
 func finish_run() -> void:
+	arrived_from = "forest" if level != null and level.name == "Forest" else ""
 	var got := cost_text(run_gain)
 	post_after_scene_change("村に戻った。" + ("持ち帰り：" + got if got != "" else "今回の収穫はなし。"))
 	run_gain = {}
@@ -258,9 +275,10 @@ func _add_action(action: String, keys: Array, buttons: Array = [], axis := -1, a
 		InputMap.action_add_event(action, m)
 
 
-## audio/main_bgm.ogg（または .mp3 / .wav）を置くと、村でも坑道でもずっと流れる
 ## 村でも坑道でも流れる曲。差し替えるときはここのファイル名を変える
 const MAIN_BGM := "res://audio/rootlight_village_recorded.ogg"
+## 森の曲（audio/village_under_world_tree.mid を音にしたもの）
+const FOREST_BGM := "res://audio/village_under_world_tree.ogg"
 ## まだ使っていない曲（坑道用・夜用）。場面や時間で切り替えるときに使う
 const MINE_BGM := "res://audio/amber_veins_mine_8bit.ogg"
 const NIGHT_BGM := "res://audio/rootlight_village_evening_8bit.ogg"
@@ -269,14 +287,19 @@ const NIGHT_BGM := "res://audio/rootlight_village_evening_8bit.ogg"
 func _setup_bgm() -> void:
 	bgm = AudioStreamPlayer.new()
 	bgm.volume_db = -6.0
+	bgm.finished.connect(bgm.play)
 	add_child(bgm)
-	if not ResourceLoader.exists(MAIN_BGM):
+	play_bgm(MAIN_BGM)
+
+
+## 曲を切り替える。同じ曲が流れていればそのまま続ける
+func play_bgm(path: String) -> void:
+	if bgm_path == path or not ResourceLoader.exists(path):
 		return
-	var stream: AudioStream = load(MAIN_BGM)
+	bgm_path = path
+	var stream: AudioStream = load(path)
 	if "loop" in stream:
 		stream.loop = true
-	else:
-		bgm.finished.connect(bgm.play)
 	bgm.stream = stream
 	bgm.play()
 

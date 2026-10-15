@@ -239,13 +239,19 @@ func _attack() -> void:
 	var q := PhysicsShapeQueryParameters2D.new()
 	q.shape = shape
 	q.transform = Transform2D(0.0, global_position + attack_dir * reach)
-	q.collision_mask = 4
+	q.collision_mask = 4 | 8
 	var hit_creature := false
+	var hit_thing := false
 	for h in get_world_2d().direct_space_state.intersect_shape(q, 8):
 		var c: Object = h["collider"]
-		if is_instance_valid(c) and c is Creature:
+		if not is_instance_valid(c):
+			continue
+		if c is Creature:
 			(c as Creature).hurt(power, global_position)
 			hit_creature = true
+		elif c.has_method("on_hit") and c.on_hit(power, attack_dir, global_position):
+			# 森の実など、叩くと動くもの
+			hit_thing = true
 	if hit_creature:
 		if attack_dir == Vector2.DOWN and not is_on_floor():
 			# 下突きで跳ね返る（ホロウナイトのホッピング）
@@ -253,6 +259,8 @@ func _attack() -> void:
 			air_dash_used = false
 		elif attack_dir.y == 0.0:
 			velocity.x = -facing * 140.0
+		return
+	if hit_thing:
 		return
 
 	# 何もいなければ、その方向の壁を掘る
