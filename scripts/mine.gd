@@ -9,6 +9,7 @@ extends Node2D
 const GW := 4  # 横に並ぶ部屋の数
 const GH := 4  # 縦に並ぶ部屋の数
 const T := Tiles.SIZE
+const SPAWN_CREATURES := false  # いったん坑道に敵（主も）を出さない。戻すときは true
 
 var map: TileMapLayer  # 当たり判定と地形の種類（見えない）
 var ground_view: TileMapLayer  # 足場タイルの見た目
@@ -179,6 +180,8 @@ func generate() -> Vector2i:
 		put_tile(Vector2i(map_w - 1, y), Tiles.BEDROCK)
 
 	# 5. 生き物を置く
+	if not SPAWN_CREATURES:
+		spawns.clear()
 	for s in spawns:
 		_spawn_creature(s[0], s[1], s[2])
 	return start_cell

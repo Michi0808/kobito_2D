@@ -71,8 +71,11 @@ func _run() -> void:
 	var used: Array = m.map.get_used_cells()
 	check(used.size() > 900, "地形が生成された（%d マス）" % used.size())
 	var creatures := get_tree().get_nodes_in_group("creatures")
-	check(creatures.size() >= 4, "生き物がいる（%d 匹）" % creatures.size())
-	check(Game.boss != null, "坑道の主がいる")
+	if m.SPAWN_CREATURES:
+		check(creatures.size() >= 4, "生き物がいる（%d 匹）" % creatures.size())
+		check(Game.boss != null, "坑道の主がいる")
+	else:
+		check(creatures.is_empty() and Game.boss == null, "坑道に敵がいない")
 
 	check(m.ground_view.get_used_cells().size() == used.size() - m.plat_view.get_used_cells().size(), "足場の見た目が当たり判定と同じマスに描かれた")
 	check(m.ladders.size() > 0, "はしごがある（%d マス）" % m.ladders.size())
