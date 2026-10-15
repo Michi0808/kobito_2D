@@ -115,7 +115,7 @@ func _run() -> void:
 	m.hit_tile(m.map.map_to_local(dug_view), 1)
 	check(m.ground_view.get_cell_source_id(dug_view) == -1, "掘ったマスの見た目が消えた")
 	var up_coords: Vector2i = m.ground_view.get_cell_atlas_coords(dug_view + Vector2i.UP)
-	check(m.ground_view.get_cell_source_id(dug_view + Vector2i.UP) == MineArt.SRC_TERRAIN and (up_coords.x + up_coords.y * 4) & 4 == 0, "上のマスが「下が開いた」形に描き直された")
+	check(m.ground_view.get_cell_source_id(dug_view + Vector2i.UP) == MineArt.SRC_TERRAIN and up_coords.y & 4 == 0, "上のマスが「下が開いた」形に描き直された")
 
 	# 足元を掘る
 	var p := Game.player as Player
