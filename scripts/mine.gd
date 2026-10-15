@@ -35,7 +35,7 @@ var root_msg_shown := false
 func _ready() -> void:
 	Game.level = self
 	Game.boss = null
-	Game.play_bgm(Game.MAIN_BGM)
+	Game.play_bgm(Game.MINE_BGM)
 	rng.randomize()
 	map_w = GW * MineRooms.W + 2
 	map_h = GH * MineRooms.H + 2

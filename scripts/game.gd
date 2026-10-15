@@ -275,12 +275,13 @@ func _add_action(action: String, keys: Array, buttons: Array = [], axis := -1, a
 		InputMap.action_add_event(action, m)
 
 
-## 村でも坑道でも流れる曲。差し替えるときはここのファイル名を変える
+## 村で流れる曲。差し替えるときはここのファイル名を変える
 const MAIN_BGM := "res://audio/rootlight_village_recorded.ogg"
 ## 森の曲（audio/village_under_world_tree.mid を音にしたもの）
 const FOREST_BGM := "res://audio/village_under_world_tree.ogg"
-## まだ使っていない曲（坑道用・夜用）。場面や時間で切り替えるときに使う
+## 坑道の曲
 const MINE_BGM := "res://audio/amber_veins_mine_8bit.ogg"
+## まだ使っていない曲（夜用）。時間で切り替えるときに使う
 const NIGHT_BGM := "res://audio/rootlight_village_evening_8bit.ogg"
 
 
