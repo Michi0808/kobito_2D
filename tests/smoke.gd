@@ -68,6 +68,7 @@ func _run() -> void:
 	await frames(10)
 	var m: Node = Game.level
 	check(m != null and m.name == "Mine", "坑道が読み込まれた")
+	check(Game.bgm_path == Game.MINE_BGM, "坑道の曲に替わった")
 	var used: Array = m.map.get_used_cells()
 	check(used.size() > 900, "地形が生成された（%d マス）" % used.size())
 	var creatures := get_tree().get_nodes_in_group("creatures")
