@@ -5,6 +5,8 @@
 - 透明な余白を切り落とし、ゲームの中で表示する大きさの 2 倍に縮める（ゲームでは 0.5 倍で表示）。
 - 籠の奥（back）と手前（front）は、重ねたときにずれないよう同じ枠で切る。
 - 地面の縁（edge_top）は横につないでも継ぎ目が目立たないよう、両端を混ぜる。
+- 中景で絵の端まで描かれているもの（光の差す隙間・枝）は、端で木や枝がぶつ切りに見えないよう、
+  端に向かって葉の形にむらのある透明にして、まわりの絵に溶け込ませる。
 - 当たり判定の位置（枝の上面・籠の縁・葉の坂）は scripts/forest_art.gd に数値で書いてある。
   素材を描き直して形が大きく変わったら、そこも合わせる。
 
@@ -48,6 +50,8 @@ FILES = {
     # 運ぶ道具
     "leaf_ramp": ("t", "berry_leaf_ramp.png", 360, True),
 }
+# 端を溶かす中景（絵の端で木や枝が切れているもの）
+FEATHER = {"mid_light_gap": 0.24, "mid_branch_01": 0.14}
 # 同じ枠で切る組（奥・手前）
 PAIRS = {
     "basket": ("berry_basket_back.png", "berry_basket_front.png", 400),
@@ -78,6 +82,34 @@ def seamless_x(im, band=96):
     return Image.fromarray(np.clip(a, 0, 255).astype(np.uint8), im.mode)
 
 
+def feather_sides(im, frac, seed=1):
+    """左右の端で絵が切れているところを、端に向かって透明にする。
+    まっすぐな境目にならないよう、行ごとに幅をゆらし、細かいむらも混ぜる。"""
+    a = np.asarray(im).astype(np.float32)
+    h, w = a.shape[:2]
+    rng = np.random.default_rng(seed)
+    band = max(8, int(w * frac))
+    # 行ごとの幅のゆらぎ（なめらかな波）と、細かいむら
+    rows = np.arange(h)[:, None]
+    wobble = np.zeros((h, 1))
+    for k, amp in ((1, 0.35), (3, 0.2), (9, 0.1)):
+        wobble += amp * np.sin(rows / h * np.pi * 2 * k + rng.uniform(0, 6.3))
+    grain = rng.uniform(-0.12, 0.12, size=(h, w))
+    x = np.arange(w)[None, :].astype(np.float32)
+    alpha = a[:, :, 3] / 255.0
+    for side in ("left", "right"):
+        col = alpha[:, 0] if side == "left" else alpha[:, -1]
+        if (col > 0.15).mean() < 0.05:
+            continue  # この端は切れていない
+        d = x if side == "left" else (w - 1 - x)
+        t = d / (band * (1.0 + wobble)) + grain
+        t = np.clip(t, 0.0, 1.0)
+        t = t * t * (3 - 2 * t)
+        alpha = alpha * t
+    a[:, :, 3] = alpha * 255.0
+    return Image.fromarray(np.clip(a, 0, 255).astype(np.uint8), "RGBA")
+
+
 def main():
     if len(sys.argv) != 4:
         print(__doc__)
@@ -92,6 +124,8 @@ def main():
             im = im.crop(alpha_bbox(im))
         if name == "edge_top":
             im = seamless_x(im)
+        if name in FEATHER:
+            im = feather_sides(im, FEATHER[name])
         im = fit(im, limit)
         im.save(os.path.join(out, name + ".png"), optimize=True)
         print(name, im.size)

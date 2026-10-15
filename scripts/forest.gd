@@ -266,7 +266,8 @@ func _build_backdrop() -> void:
 	var mid := Parallax2D.new()
 	mid.scroll_scale = Vector2(0.55, 1.0)
 	mid.z_index = -20
-	var mids := ["mid_light_gap", "mid_bush_02", "mid_old_arch", "mid_bush_01", "mid_light_gap", "mid_branch_01", "mid_bush_02"]
+	# 光の差す隙間と枝は端を溶かしてあるので、茂みと重ねて途切れずにつながって見える
+	var mids := ["mid_light_gap", "mid_bush_02", "mid_old_arch", "mid_bush_01", "mid_light_gap", "mid_branch_01", "mid_bush_02", "mid_light_gap", "mid_bush_01"]
 	for i in mids.size():
 		var sp := Sprite2D.new()
 		sp.texture = ForestArt.tex(mids[i])
