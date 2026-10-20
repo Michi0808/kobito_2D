@@ -1,7 +1,8 @@
 class_name ForestLevel
 extends Node2D
 ## ベリーの森（地上の採取場）。村の右端の道から入る。
-## 太い茨の枝が足場になっていて、枝には木苺が実っている。実を叩くか、乗っている枝を下攻撃で揺らすと落ちる。
+## 大きな木の幹を登り、幹から伸びる枝を足場にする。木苺は枝先の葉の房に実っている。
+## 実を叩くか、乗っている枝を下攻撃で揺らすと落ちる。
 ## 落ちた実は体当たりで転がし、葉の坂を押し上げたり上から落としたりして籠に入れる。籠に入った実が収穫になる。
 ##
 ## 絵は art/forest/ の手描き素材（作り方は tools/build_forest_art.py）。
@@ -12,11 +13,14 @@ const WIDTH := 3200.0
 const GROUND := 0.0
 const ENTRANCE_X := 70.0
 ## 枝の段の高さ。主人公のジャンプ（約 96px）で一段ずつ登れる間隔
-const TIER := [-80.0, -165.0, -250.0, -335.0]
-const STUMP_SCALE := 0.38
+const TIER := [-80.0, -165.0, -250.0, -335.0, -420.0]
+const TRUNK_W := 90.0
+## 枝の根元は幹の後ろに差し込む
+const BRANCH_TUCK := 24.0
 
 var player: Player
 var hud: HUD
+var trees: Array = []  # {x0, x1, top}：幹（はしごと同じく上下で登れる）
 var branches: Array = []  # {x0, x1, top, sprite, berries}
 var baskets: Array = []  # {area, count}
 var world: Node2D  # 地形・枝・実を入れる
@@ -35,26 +39,29 @@ func _ready() -> void:
 	add_child(world)
 	_build_ground()
 
-	# 入口から右へ：岩 → 茨の群れ（籠A）→ 開けた所 → 茨の群れ（籠B）→ 岩
+	# 入口から右へ：岩 → 大きな木（籠A）→ 開けた所 → 大きな木（籠B）→ 岩
+	# 枝は左右に互い違いに伸ばす。籠の側の高い枝の先の実は、落とすとそのまま籠に入る
 	_rock(300.0)
 	_bush(470.0, "mid_bush_01", 0.9)
 	_bush(1020.0, "mid_bush_02", 0.85)
-	_stump(560.0, false)
-	_branch(734.0, TIER[0], 320.0, false, [[0.3, "black_m"], [0.55, "black_unripe"], [0.82, "black_s"]])
-	_branch(960.0, TIER[1], 290.0, true, [[0.25, "black_l"], [0.62, "black_m"]])
-	_branch(1260.0, TIER[2], 300.0, false, [[0.2, "black_m"], [0.45, "black_m"], [0.7, "black_s"], [0.9, "red"]])
-	_branch(880.0, TIER[3], 260.0, true, [[0.3, "red"], [0.6, "red_unripe"], [0.85, "red"]])
+	var ta := _tree(820.0, TIER[4] - 70.0)
+	_branch(ta, 1, TIER[0], 200.0, ["black_m", "black_unripe", "black_s"])
+	_branch(ta, -1, TIER[1], 230.0, ["black_l", "black_m"])
+	_branch(ta, 1, TIER[2], 430.0, ["black_m", "black_s", "red"])
+	_branch(ta, -1, TIER[3], 200.0, ["red", "red_unripe", "red"])
+	_branch(ta, 1, TIER[4], 170.0, ["black_m", "black_l"])
 	_ramp(1138.0, false)
 	_basket(1300.0)
 	_ground_berry(660.0, "straw")
 
 	_bush(1980.0, "mid_bush_02", 0.9)
 	_bush(2480.0, "mid_bush_01", 0.85)
-	_stump(2420.0, true)
-	_branch(2110.0, TIER[0], 318.0, true, [[0.2, "black_m"], [0.45, "black_s"], [0.72, "black_l"]])
-	_branch(1900.0, TIER[1], 280.0, false, [[0.3, "red"], [0.7, "red"]])
-	_branch(2160.0, TIER[2], 290.0, true, [[0.3, "black_m"], [0.5, "black_unripe"], [0.75, "black_m"]])
-	_branch(2000.0, TIER[3], 250.0, false, [[0.5, "red"], [0.8, "black_l"]])
+	var tb := _tree(2230.0, TIER[4] - 70.0)
+	_branch(tb, 1, TIER[0], 200.0, ["black_m", "black_s", "black_l"])
+	_branch(tb, -1, TIER[1], 230.0, ["red", "red"])
+	_branch(tb, 1, TIER[2], 420.0, ["black_m", "black_unripe", "black_m"])
+	_branch(tb, -1, TIER[3], 200.0, ["red", "black_l"])
+	_branch(tb, 1, TIER[4], 170.0, ["red", "black_s"])
 	_ramp(2548.0, false)
 	_basket(2710.0)
 	_ground_berry(1750.0, "straw")
@@ -71,9 +78,9 @@ func _ready() -> void:
 
 	hud = HUD.new()
 	add_child(hud)
-	hud.set_hint("歩く A/D　ジャンプ Space　攻撃 J（実を叩く・W/Sで上下・枝の上で S+J で揺らす）　ダッシュ K で体当たり　村へ戻る 入口で E")
+	hud.set_hint("歩く A/D　ジャンプ Space　幹で W/S 登る　攻撃 J（実を叩く・W/Sで上下・枝の上で S+J で揺らす）　ダッシュ K で体当たり　村へ戻る 入口で E")
 	if Game.queued_message == "":
-		Game.post("ベリーの森。枝の実を叩いて落とし、体当たりで転がして籠に入れよう。")
+		Game.post("ベリーの森。木に登って枝先の実を叩いて落とし、体当たりで転がして籠に入れよう。")
 
 
 # ---- 地形 ----
@@ -158,38 +165,73 @@ func _bush(x: float, name: String, sc: float) -> void:
 	world.add_child(sp)
 
 
-## 枝の根元の切り株（見た目だけ）。枝はこの口から伸びているように置く
-func _stump(x: float, flip: bool) -> void:
-	var s := STUMP_SCALE
-	var sp := ForestArt.sprite("thin_branch_base", Vector2(x, GROUND + 6.0 - ForestArt.STUMP_BOTTOM * s), s)
-	sp.flip_h = flip
-	sp.z_index = -3
-	world.add_child(sp)
+## 大きな木の幹。x は幹の左端、top は登れる上の端。幹は通り抜けられ、上下を押すとつかまって登る
+## （仮の絵：幹と樹冠はコードで描いている。手描きの絵が届いたら差し替える）
+func _tree(x: float, top: float) -> Dictionary:
+	var tr := {"x0": x, "x1": x + TRUNK_W, "top": top}
+	var trunk := Node2D.new()
+	trunk.z_index = -1
+	trunk.draw.connect(func() -> void:
+		var bark := Color(0.4, 0.29, 0.19)
+		var dark := Color(0.3, 0.21, 0.14)
+		var w := TRUNK_W
+		trunk.draw_colored_polygon(PackedVector2Array([
+			Vector2(x - 34, GROUND + 8), Vector2(x - 6, GROUND - 30), Vector2(x + 4, top - 30),
+			Vector2(x + w - 4, top - 30), Vector2(x + w + 6, GROUND - 30), Vector2(x + w + 34, GROUND + 8)]), bark)
+		for i in 5:
+			var bx := x + 14.0 + i * (w - 28.0) / 4.0
+			trunk.draw_line(Vector2(bx, top - 20), Vector2(bx + (i - 2) * 3.0, GROUND - 6), dark, 3.0)
+		for k in 7:
+			var ky := GROUND - 60.0 - k * 64.0
+			if ky > top:
+				trunk.draw_arc(Vector2(x + 24.0 + (k % 3) * 20.0, ky), 7.0, 0.3, 2.8, 8, dark, 3.0))
+	world.add_child(trunk)
+	# 樹冠：茂みの絵を重ねる
+	for c in [[-150.0, 0.4], [-60.0, 0.45], [40.0, 0.38]]:
+		var cr := ForestArt.sprite("mid_bush_01" if c[0] < 0.0 else "mid_bush_02", Vector2.ZERO, c[1])
+		# 幹のてっぺんを葉で包む（幹より手前）
+		cr.position = Vector2(x + c[0], top + 30.0 - cr.texture.get_height() * float(c[1]))
+		cr.modulate = Color(0.78, 0.86, 0.76)
+		cr.z_index = -1
+		world.add_child(cr)
+	trees.append(tr)
+	return tr
 
 
-## 枝の足場。x は乗れる範囲の左端、top は上面の高さ。berries は [枝の上の位置 0〜1, 種類]
-func _branch(x: float, top: float, length: float, flip: bool, berries: Array) -> void:
-	var s := length / (ForestArt.BRANCH_X1 - ForestArt.BRANCH_X0)
-	var sp := ForestArt.sprite("platform_branch", Vector2(x - ForestArt.BRANCH_X0 * s, top - ForestArt.BRANCH_TOP * s), s)
-	sp.flip_h = flip
+## 幹から伸びる枝の足場。side は伸びる向き（1=右, -1=左）、top は上面の高さ。
+## 枝先に葉の房をつけ、berries（種類の並び）をそこから吊るす
+func _branch(tr: Dictionary, side: int, top: float, length: float, berries: Array) -> void:
+	var x0: float = tr["x1"] if side > 0 else float(tr["x0"]) - length
+	var x1 := x0 + length
+	var s := (length + BRANCH_TUCK) / (ForestArt.BRANCH_X1 - ForestArt.BRANCH_X0)
+	var art_x := (x0 - BRANCH_TUCK) if side > 0 else x0
+	var sp := ForestArt.sprite("platform_branch", Vector2(art_x - ForestArt.BRANCH_X0 * s, top - ForestArt.BRANCH_TOP * s), s)
+	sp.flip_h = side < 0
 	sp.z_index = -2
 	world.add_child(sp)
 	var body := _static(1)
-	_rect_shape(body, Rect2(x, top, length, 10.0), true)
-	var b := {"x0": x, "x1": x + length, "top": top, "sprite": sp, "berries": []}
-	var under := top + (ForestArt.BRANCH_BOTTOM - ForestArt.BRANCH_TOP) * s - 4.0
-	for e in berries:
-		var bx: float = x + length * float(e[0])
-		var berry := Berry.new().setup(e[1], true, rng)
-		var stem_len := 8.0 + berry.radius * 0.3
-		berry.position = Vector2(bx, under + stem_len + berry.radius * 0.8)
+	_rect_shape(body, Rect2(x0, top, length, 10.0), true)
+	var b := {"x0": x0, "x1": x1, "top": top, "sprite": sp, "berries": []}
+	# 葉の房は枝先の少し上。実は房から主人公の胸の高さに垂れ、枝の外へ落ちる
+	var tip := x1 if side > 0 else x0
+	var leaf := ForestArt.sprite("mid_bush_02", Vector2.ZERO, 0.11)
+	leaf.position = Vector2(tip - leaf.texture.get_width() * 0.11 * (0.25 if side > 0 else 0.75), top - 78.0)
+	leaf.flip_h = side < 0
+	leaf.z_index = -1
+	world.add_child(leaf)
+	var anchor := top - 40.0
+	for i in berries.size():
+		var bx := tip + side * (10.0 + i * 16.0)
+		var berry := Berry.new().setup(berries[i], true, rng)
+		var stem_len := 6.0 + (i % 2) * 8.0
+		berry.position = Vector2(bx, anchor + stem_len + berry.radius * 0.8)
 		berry.branch = b
 		var stem := Sprite2D.new()
 		stem.texture = ForestArt.tex("fruit_stem")
 		var ss := (stem_len + berry.radius * 0.4) / stem.texture.get_height()
 		stem.scale = Vector2(ss, ss)
 		stem.centered = false
-		stem.position = Vector2(bx - stem.texture.get_width() * ss / 2.0, under)
+		stem.position = Vector2(bx - stem.texture.get_width() * ss / 2.0, anchor)
 		stem.z_index = -1
 		world.add_child(stem)
 		berry.stem = stem
@@ -332,6 +374,14 @@ func _entrance_sign() -> void:
 
 
 # ---- 遊び ----
+
+## 幹の前にいるか（Player が上下でつかまって登る）
+func is_ladder(world_pos: Vector2) -> bool:
+	for tr in trees:
+		if world_pos.x >= tr["x0"] + 8.0 and world_pos.x <= tr["x1"] - 8.0 and world_pos.y >= tr["top"] and world_pos.y <= GROUND:
+			return true
+	return false
+
 
 ## 攻撃が地形に当たった（Player から呼ばれる）。枝なら揺らして熟した実を落とす
 func hit_tile(world_pos: Vector2, _power: int) -> bool:
