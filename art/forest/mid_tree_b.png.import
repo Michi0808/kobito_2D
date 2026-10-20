@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://doehj0glmxq48"
-path="res://.godot/imported/mid_light_gap.png-f816a698128d37d7389bdd95b1a0c2f1.ctex"
+uid="uid://x7nskn8xh0hn"
+path="res://.godot/imported/mid_tree_b.png-63780067d4fdf97e8ea760de958f40a8.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/forest/mid_light_gap.png"
-dest_files=["res://.godot/imported/mid_light_gap.png-f816a698128d37d7389bdd95b1a0c2f1.ctex"]
+source_file="res://art/forest/mid_tree_b.png"
+dest_files=["res://.godot/imported/mid_tree_b.png-63780067d4fdf97e8ea760de958f40a8.ctex"]
 
 [params]
 
