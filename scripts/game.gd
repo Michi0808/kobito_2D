@@ -287,7 +287,7 @@ const NIGHT_BGM := "res://audio/rootlight_village_evening_8bit.ogg"
 
 ## 曲の音量（dB）と、切り替えたときに音が大きくなるまでの秒数
 const BGM_VOLUME_DB := -6.0
-const BGM_FADE_IN := 1.5
+const BGM_FADE_IN := 5.0
 
 var bgm_fade: Tween
 
@@ -317,11 +317,12 @@ func play_bgm(path: String) -> void:
 func _fade_in_bgm() -> void:
 	if bgm_fade != null:
 		bgm_fade.kill()
-	# 音の大きさ（リニア）で上げると、耳には自然に大きくなって聞こえる
+	# 出だしはごく小さく、後半にかけてゆっくり大きくなる（イーズイン）
 	var target := db_to_linear(BGM_VOLUME_DB)
 	bgm.volume_db = -80.0
 	bgm_fade = create_tween()
 	bgm_fade.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	bgm_fade.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
 	bgm_fade.tween_method(func(v: float) -> void: bgm.volume_db = linear_to_db(maxf(v, 0.0001)), 0.0, target, BGM_FADE_IN)
 
 
