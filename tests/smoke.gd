@@ -250,6 +250,21 @@ func _forest() -> void:
 	await frames(30)
 	check(green.hanging, "青い実は叩いても落ちない")
 
+	# 幹の前で上を押すと登れて、枝の高さで横へ出ると枝に乗れる
+	var tr: Dictionary = f.trees[0]
+	p.global_position = Vector2((tr["x0"] + tr["x1"]) / 2.0, -Player.BODY.y / 2.0)
+	p.velocity = Vector2.ZERO
+	await frames(10)
+	Input.action_press("up")
+	await frames(125)
+	check(p.climbing and p.global_position.y < f.TIER[2] - 20.0, "幹を登れる（高さ %.0f）" % p.global_position.y)
+	Input.action_press("move_right")
+	await frames(75)
+	Input.action_release("move_right")
+	Input.action_release("up")
+	await frames(30)
+	check(not p.climbing and p.is_on_floor() and p.global_position.x > tr["x1"] and p.global_position.y < f.TIER[0] - 20.0, "幹から横の枝に乗れる")
+
 	# 枝の上で下攻撃すると、その枝の熟した実がまとめて落ちる
 	var br: Dictionary = f.branches[0]
 	p.global_position = Vector2((br["x0"] + br["x1"]) / 2.0, br["top"] - Player.BODY.y / 2.0 - 2.0)
@@ -268,13 +283,11 @@ func _forest() -> void:
 			still += 1
 	check(still == 0, "枝を揺らすと熟した実が全部落ちた")
 
-	# 地面の実を体当たりで動かす
-	var fallen: Berry = null
-	for b in br["berries"]:
-		if b.ripe() and not b.in_basket:
-			fallen = b
-			break
-	await frames(60)
+	# 地面の実を歩いて押す・体当たりで動かす（枝から落ちた実は坂や籠のそばに転がるので、開けた所で試す）
+	var fallen := Berry.new().setup("black_m", false)
+	fallen.position = Vector2(1700, -15)
+	f.world.add_child(fallen)
+	await frames(30)
 	p.global_position = fallen.global_position + Vector2(-70, -Player.BODY.y / 2.0 + fallen.radius)
 	p.velocity = Vector2.ZERO
 	p.facing = 1

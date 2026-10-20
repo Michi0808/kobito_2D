@@ -13,10 +13,6 @@ const BRANCH_BOTTOM := 132.0
 const BRANCH_X0 := 16.0
 const BRANCH_X1 := 624.0
 
-## 枝の根元の切り株（thin_branch_base.png 480×387）：枝をつなぐ口の中心と、地面に着く下端
-const STUMP_SOCKET := Vector2(470.0, 196.0)
-const STUMP_BOTTOM := 380.0
-
 ## 籠（basket_back / basket_front.png 400×285）
 const BASKET_RIM := 180.0  # 左右の縁の高さ
 const BASKET_FLOOR := 222.0  # 中の底（実が縁から少し見えるよう、絵の底より浅くしてある）
