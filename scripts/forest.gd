@@ -15,8 +15,6 @@ const ENTRANCE_X := 70.0
 ## 枝の段の高さ。主人公のジャンプ（約 96px）で一段ずつ登れる間隔
 const TIER := [-80.0, -165.0, -250.0, -335.0, -420.0]
 const TRUNK_W := 90.0
-## 枝の根元は幹の後ろに差し込む
-const BRANCH_TUCK := 24.0
 
 var player: Player
 var hud: HUD
@@ -44,7 +42,7 @@ func _ready() -> void:
 	_rock(300.0)
 	_bush(470.0, "mid_bush_01", 0.9)
 	_bush(1020.0, "mid_bush_02", 0.85)
-	var ta := _tree(820.0, TIER[4] - 70.0)
+	var ta := _tree(820.0, TIER[4] - 100.0)
 	_branch(ta, 1, TIER[0], 200.0, ["black_m", "black_unripe", "black_s"])
 	_branch(ta, -1, TIER[1], 230.0, ["black_l", "black_m"])
 	_branch(ta, 1, TIER[2], 430.0, ["black_m", "black_s", "red"])
@@ -56,7 +54,7 @@ func _ready() -> void:
 
 	_bush(1980.0, "mid_bush_02", 0.9)
 	_bush(2480.0, "mid_bush_01", 0.85)
-	var tb := _tree(2230.0, TIER[4] - 70.0)
+	var tb := _tree(2230.0, TIER[4] - 100.0)
 	_branch(tb, 1, TIER[0], 200.0, ["black_m", "black_s", "black_l"])
 	_branch(tb, -1, TIER[1], 230.0, ["red", "red"])
 	_branch(tb, 1, TIER[2], 420.0, ["black_m", "black_unripe", "black_m"])
@@ -74,7 +72,7 @@ func _ready() -> void:
 	player.position = Vector2(ENTRANCE_X + 80.0, GROUND - Player.BODY.y / 2.0)
 	add_child(player)
 	player.light.enabled = false
-	player.set_camera_limits(Rect2(0, -640, WIDTH, 810))
+	player.set_camera_limits(Rect2(0, -1000, WIDTH, 1170))
 
 	hud = HUD.new()
 	add_child(hud)
@@ -165,76 +163,83 @@ func _bush(x: float, name: String, sc: float) -> void:
 	world.add_child(sp)
 
 
-## 大きな木の幹。x は幹の左端、top は登れる上の端。幹は通り抜けられ、上下を押すとつかまって登る
-## （仮の絵：幹と樹冠はコードで描いている。手描きの絵が届いたら差し替える）
+## 大きな木の幹。x は幹の左端、top は登れる上の端。幹は通り抜けられ、上下を押すとつかまって登る。
+## 絵は下から 根元 → 幹（top に届くまで縦に並べる）→ 樹冠
 func _tree(x: float, top: float) -> Dictionary:
 	var tr := {"x0": x, "x1": x + TRUNK_W, "top": top}
-	var trunk := Node2D.new()
-	trunk.z_index = -1
-	trunk.draw.connect(func() -> void:
-		var bark := Color(0.4, 0.29, 0.19)
-		var dark := Color(0.3, 0.21, 0.14)
-		var w := TRUNK_W
-		trunk.draw_colored_polygon(PackedVector2Array([
-			Vector2(x - 34, GROUND + 8), Vector2(x - 6, GROUND - 30), Vector2(x + 4, top - 30),
-			Vector2(x + w - 4, top - 30), Vector2(x + w + 6, GROUND - 30), Vector2(x + w + 34, GROUND + 8)]), bark)
-		for i in 5:
-			var bx := x + 14.0 + i * (w - 28.0) / 4.0
-			trunk.draw_line(Vector2(bx, top - 20), Vector2(bx + (i - 2) * 3.0, GROUND - 6), dark, 3.0)
-		for k in 7:
-			var ky := GROUND - 60.0 - k * 64.0
-			if ky > top:
-				trunk.draw_arc(Vector2(x + 24.0 + (k % 3) * 20.0, ky), 7.0, 0.3, 2.8, 8, dark, 3.0))
-	world.add_child(trunk)
-	# 樹冠：茂みの絵を重ねる
-	for c in [[-150.0, 0.4], [-60.0, 0.45], [40.0, 0.38]]:
-		var cr := ForestArt.sprite("mid_bush_01" if c[0] < 0.0 else "mid_bush_02", Vector2.ZERO, c[1])
-		# 幹のてっぺんを葉で包む（幹より手前）
-		cr.position = Vector2(x + c[0], top + 30.0 - cr.texture.get_height() * float(c[1]))
-		cr.modulate = Color(0.78, 0.86, 0.76)
-		cr.z_index = -1
-		world.add_child(cr)
+	var k := TRUNK_W / ForestArt.TRUNK_SRC_W
+	var cx := x + TRUNK_W / 2.0
+	var y := GROUND + 8.0 - (ForestArt.TRUNK_BASE_BOTTOM - ForestArt.TRUNK_BASE_TOP.y) * k
+	var parts: Array = [ForestArt.climb_sprite("trunk_base", ForestArt.TRUNK_BASE_TOP, Vector2(cx, y), k)]
+	while y > top - 20.0:
+		# つなぎ目に隙間が出ないよう 1px 重ねる
+		parts.append(ForestArt.climb_sprite("trunk_mid", Vector2(ForestArt.TRUNK_MID_CX, ForestArt.TRUNK_MID_H), Vector2(cx, y + 1.0), k))
+		y -= ForestArt.TRUNK_MID_H * k
+	parts.append(ForestArt.climb_sprite("trunk_top", ForestArt.TRUNK_TOP_BOTTOM, Vector2(cx, y + 1.0), k))
+	for sp in parts:
+		sp.z_index = -1
+		world.add_child(sp)
 	trees.append(tr)
 	return tr
 
 
-## 幹から伸びる枝の足場。side は伸びる向き（1=右, -1=左）、top は上面の高さ。
-## 枝先に葉の房をつけ、berries（種類の並び）をそこから吊るす
+## 幹から伸びる枝の足場。side は伸びる向き（1=右, -1=左）、top は上面の高さ、length は幹の縁から乗れる長さ。
+## 枝先に葉の房をつけ、berries（種類の並び）を房の茎から吊るす
 func _branch(tr: Dictionary, side: int, top: float, length: float, berries: Array) -> void:
-	var x0: float = tr["x1"] if side > 0 else float(tr["x0"]) - length
-	var x1 := x0 + length
-	var s := (length + BRANCH_TUCK) / (ForestArt.BRANCH_X1 - ForestArt.BRANCH_X0)
-	var art_x := (x0 - BRANCH_TUCK) if side > 0 else x0
-	var sp := ForestArt.sprite("platform_branch", Vector2(art_x - ForestArt.BRANCH_X0 * s, top - ForestArt.BRANCH_TOP * s), s)
-	sp.flip_h = side < 0
+	var cx: float = (tr["x0"] + tr["x1"]) / 2.0
+	var edge: float = tr["x1"] if side > 0 else tr["x0"]
+	var art_name := "branch_long" if length >= 300.0 else "branch_short"
+	var art: Dictionary = ForestArt.BRANCH_ART[art_name]
+	var cut: float = art["cut"]
+	var ref: float = art["ref"]
+	var k: float = (length + TRUNK_W / 2.0) / (float(art["end"]) - cut)
+	# 根元の切り口は幹の中心に置き、幹の後ろに隠す
+	var sp := ForestArt.climb_sprite(art_name, Vector2(cut, ref), Vector2(cx, top), k, side < 0)
 	sp.z_index = -2
 	world.add_child(sp)
+	# 上面の線に沿った、下からすり抜けられる足場（幹の縁から先だけ）
+	var line := PackedVector2Array()
+	var prev := Vector2.ZERO
+	for p in art["top"]:
+		var g := Vector2(cx + side * (p.x - cut) * k, top + (p.y - ref) * k)
+		if side * (g.x - edge) >= 0.0:
+			if line.is_empty() and prev != Vector2.ZERO:
+				var t := (edge - prev.x) / (g.x - prev.x)
+				line.append(Vector2(edge, lerpf(prev.y, g.y, t)))
+			line.append(g)
+		prev = g
+	if side < 0:
+		line.reverse()
+	var poly := PackedVector2Array(line)
+	for i in range(line.size() - 1, -1, -1):
+		poly.append(line[i] + Vector2(0, 10))
 	var body := _static(1)
-	_rect_shape(body, Rect2(x0, top, length, 10.0), true)
-	var b := {"x0": x0, "x1": x1, "top": top, "sprite": sp, "berries": []}
-	# 葉の房は枝先の少し上。実は房から主人公の胸の高さに垂れ、枝の外へ落ちる
-	var tip := x1 if side > 0 else x0
-	var leaf := ForestArt.sprite("mid_bush_02", Vector2.ZERO, 0.11)
-	leaf.position = Vector2(tip - leaf.texture.get_width() * 0.11 * (0.25 if side > 0 else 0.75), top - 78.0)
-	leaf.flip_h = side < 0
+	var cp := CollisionPolygon2D.new()
+	cp.polygon = poly
+	cp.one_way_collision = true
+	body.add_child(cp)
+	var x0 := minf(edge, edge + side * length)
+	var b := {"x0": x0, "x1": x0 + length, "top": top, "sprite": sp, "berries": []}
+	# 葉の房は乗れる端のすぐ外。茎の先が主人公の胸の高さに来るので、枝の上から叩ける。実は枝の外へ落ちる
+	var tip := edge + side * length
+	var leaf_name := "leaf_cluster_b" if berries.size() >= 4 else ("leaf_cluster_a" if branches.size() % 2 == 0 else "leaf_cluster_c")
+	var stems: Array = ForestArt.LEAF_STEMS[leaf_name]
+	var lk := 0.2
+	var mid_x := 0.0
+	var low_y := 0.0
+	for st in stems:
+		mid_x += st.x / stems.size()
+		low_y = maxf(low_y, st.y)
+	var hang := Vector2(tip + side * 30.0, top - 32.0)
+	var leaf := ForestArt.climb_sprite(leaf_name, Vector2(mid_x, low_y), hang, lk, side < 0)
 	leaf.z_index = -1
 	world.add_child(leaf)
-	var anchor := top - 40.0
-	for i in berries.size():
-		var bx := tip + side * (10.0 + i * 16.0)
+	for i in mini(berries.size(), stems.size()):
+		var st: Vector2 = stems[i]
 		var berry := Berry.new().setup(berries[i], true, rng)
-		var stem_len := 6.0 + (i % 2) * 8.0
-		berry.position = Vector2(bx, anchor + stem_len + berry.radius * 0.8)
+		var at := hang + Vector2(side * (st.x - mid_x), st.y - low_y) * lk
+		berry.position = at + Vector2(0, berry.radius * 0.85)
 		berry.branch = b
-		var stem := Sprite2D.new()
-		stem.texture = ForestArt.tex("fruit_stem")
-		var ss := (stem_len + berry.radius * 0.4) / stem.texture.get_height()
-		stem.scale = Vector2(ss, ss)
-		stem.centered = false
-		stem.position = Vector2(bx - stem.texture.get_width() * ss / 2.0, anchor)
-		stem.z_index = -1
-		world.add_child(stem)
-		berry.stem = stem
 		world.add_child(berry)
 		b["berries"].append(berry)
 	branches.append(b)

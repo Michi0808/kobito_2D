@@ -3,11 +3,13 @@
     python3 tools/build_forest_art.py art_src art/forest
 
 元の素材は art_src/ の下の berry_forest_all_images_36/（森）、berry_transport_11_4/（運ぶ道具）、
-berry_mid_trees/（中景の木。1本ずつ完結して描いたもの）から読む。
+berry_mid_trees/（中景の木。1本ずつ完結して描いたもの）、berry_climb_tree/（登れる大木の幹・枝・葉の房）から読む。
 
 - 透明な余白を切り落とし、ゲームの中で表示する大きさの 2 倍に縮める（ゲームでは 0.5 倍で表示）。
 - 籠の奥（back）と手前（front）は、重ねたときにずれないよう同じ枠で切る。
 - 地面の縁（edge_top）は横につないでも継ぎ目が目立たないよう、両端を混ぜる。
+- 登れる大木のパーツ（CLIMB）は余白を切らずに半分の大きさにするだけ。幹のつなぎ目や枝の上面・
+  実を吊る茎の位置は元の絵の px で scripts/forest_art.gd に書いてあるので、切ると合わなくなる。
 - 当たり判定の位置（枝の上面・籠の縁・葉の坂）は scripts/forest_art.gd に数値で書いてある。
   素材を描き直して形が大きく変わったら、そこも合わせる。
 
@@ -55,6 +57,10 @@ FILES = {
     # 運ぶ道具
     "leaf_ramp": ("t", "berry_leaf_ramp.png", 360, True),
 }
+# 登れる大木のパーツ（余白を切らず、元の絵の半分の大きさで書き出す）
+CLIMB = ["trunk_base", "trunk_mid", "trunk_top", "branch_long", "branch_short",
+         "leaf_cluster_a", "leaf_cluster_b", "leaf_cluster_c"]
+CLIMB_EXPORT = 0.5
 # 同じ枠で切る組（奥・手前）
 PAIRS = {
     "basket": ("berry_basket_back.png", "berry_basket_front.png", 400),
@@ -94,6 +100,7 @@ def main():
         "f": os.path.join(root, "berry_forest_all_images_36"),
         "t": os.path.join(root, "berry_transport_11_4"),
         "m": os.path.join(root, "berry_mid_trees"),
+        "c": os.path.join(root, "berry_climb_tree"),
     }
     out = sys.argv[2]
     os.makedirs(out, exist_ok=True)
@@ -107,6 +114,12 @@ def main():
         im = fit(im, limit)
         im.save(os.path.join(out, name + ".png"), optimize=True)
         print(name, im.size)
+    for name in CLIMB:
+        im = Image.open(os.path.join(src["c"], name + ".png")).convert("RGBA")
+        w, h = im.size
+        im = im.resize((round(w * CLIMB_EXPORT), round(h * CLIMB_EXPORT)), Image.LANCZOS)
+        im.save(os.path.join(out, "climb_" + name + ".png"), optimize=True)
+        print("climb_" + name, im.size)
     for name, (back, front, limit) in PAIRS.items():
         b = Image.open(os.path.join(src["t"], back)).convert("RGBA")
         f = Image.open(os.path.join(src["t"], front)).convert("RGBA")
