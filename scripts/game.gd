@@ -285,15 +285,23 @@ const MINE_BGM := "res://audio/amber_veins_mine_8bit.ogg"
 const NIGHT_BGM := "res://audio/rootlight_village_evening_8bit.ogg"
 
 
+## 曲の音量（dB）と、切り替えたときに音が大きくなるまでの秒数
+const BGM_VOLUME_DB := -6.0
+const BGM_FADE_IN := 1.5
+
+var bgm_fade: Tween
+
+
 func _setup_bgm() -> void:
 	bgm = AudioStreamPlayer.new()
-	bgm.volume_db = -6.0
+	bgm.volume_db = BGM_VOLUME_DB
 	bgm.finished.connect(bgm.play)
 	add_child(bgm)
 	play_bgm(MAIN_BGM)
 
 
-## 曲を切り替える。同じ曲が流れていればそのまま続ける
+## 曲を切り替える。新しい曲は無音から BGM_FADE_IN 秒かけて大きくなる。
+## 同じ曲が流れていればそのまま続ける
 func play_bgm(path: String) -> void:
 	if bgm_path == path or not ResourceLoader.exists(path):
 		return
@@ -303,6 +311,18 @@ func play_bgm(path: String) -> void:
 		stream.loop = true
 	bgm.stream = stream
 	bgm.play()
+	_fade_in_bgm()
+
+
+func _fade_in_bgm() -> void:
+	if bgm_fade != null:
+		bgm_fade.kill()
+	# 音の大きさ（リニア）で上げると、耳には自然に大きくなって聞こえる
+	var target := db_to_linear(BGM_VOLUME_DB)
+	bgm.volume_db = -80.0
+	bgm_fade = create_tween()
+	bgm_fade.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	bgm_fade.tween_method(func(v: float) -> void: bgm.volume_db = linear_to_db(maxf(v, 0.0001)), 0.0, target, BGM_FADE_IN)
 
 
 func _setup_theme() -> void:
