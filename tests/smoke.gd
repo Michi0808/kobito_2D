@@ -69,6 +69,9 @@ func _run() -> void:
 	var m: Node = Game.level
 	check(m != null and m.name == "Mine", "坑道が読み込まれた")
 	check(Game.bgm_path == Game.MINE_BGM, "坑道の曲に替わった")
+	check(Game.bgm.volume_db < Game.BGM_VOLUME_DB - 3.0, "切り替えた曲は小さい音から始まる（%.1f dB）" % Game.bgm.volume_db)
+	await get_tree().create_timer(Game.BGM_FADE_IN + 0.2).timeout
+	check(is_equal_approx(Game.bgm.volume_db, Game.BGM_VOLUME_DB), "フェードインして元の音量になった（%.1f dB）" % Game.bgm.volume_db)
 	var used: Array = m.map.get_used_cells()
 	check(used.size() > 900, "地形が生成された（%d マス）" % used.size())
 	var creatures := get_tree().get_nodes_in_group("creatures")
