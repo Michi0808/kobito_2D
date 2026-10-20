@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bcms47dah1eq"
-path="res://.godot/imported/mid_branch_01.png-2e6aa0b3fb3a6b24e3dac6e1e01eef39.ctex"
+uid="uid://dp1c1lwfcc8rk"
+path="res://.godot/imported/mid_tree_c.png-0e9315045646d45324f43951ce291a3e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/forest/mid_branch_01.png"
-dest_files=["res://.godot/imported/mid_branch_01.png-2e6aa0b3fb3a6b24e3dac6e1e01eef39.ctex"]
+source_file="res://art/forest/mid_tree_c.png"
+dest_files=["res://.godot/imported/mid_tree_c.png-0e9315045646d45324f43951ce291a3e.ctex"]
 
 [params]
 

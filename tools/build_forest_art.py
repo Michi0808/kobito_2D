@@ -1,12 +1,13 @@
 """森（ベリーの森）の手描き素材を、ゲームで使う大きさに整えて art/forest/ に書き出す。
 
-    python3 tools/build_forest_art.py art_src/berry_forest_all_images_36 art_src/berry_transport_11_4 art/forest
+    python3 tools/build_forest_art.py art_src art/forest
+
+元の素材は art_src/ の下の berry_forest_all_images_36/（森）、berry_transport_11_4/（運ぶ道具）、
+berry_mid_trees/（中景の木。1本ずつ完結して描いたもの）から読む。
 
 - 透明な余白を切り落とし、ゲームの中で表示する大きさの 2 倍に縮める（ゲームでは 0.5 倍で表示）。
 - 籠の奥（back）と手前（front）は、重ねたときにずれないよう同じ枠で切る。
 - 地面の縁（edge_top）は横につないでも継ぎ目が目立たないよう、両端を混ぜる。
-- 中景で絵の端まで描かれているもの（光の差す隙間・枝）は、端で木や枝がぶつ切りに見えないよう、
-  端に向かって葉の形にむらのある透明にして、まわりの絵に溶け込ませる。
 - 当たり判定の位置（枝の上面・籠の縁・葉の坂）は scripts/forest_art.gd に数値で書いてある。
   素材を描き直して形が大きく変わったら、そこも合わせる。
 
@@ -18,15 +19,19 @@ import sys
 import numpy as np
 from PIL import Image
 
-# 出力名: (元の場所 f=森 / t=運ぶ道具, 元のファイル名, 横幅か高さの上限 px（2 倍の大きさ）, 余白を切るか)
+# 出力名: (元の場所 f=森 / t=運ぶ道具 / m=中景の木, 元のファイル名, 横幅か高さの上限 px（2 倍の大きさ）, 余白を切るか)
 FILES = {
     # 背景
     "far": ("f", "11.1_backgrounds/berry_far.png", 1672, False),
     "mid_bush_01": ("f", "11.1_backgrounds/berry_mid_bush_01.png", 1000, True),
     "mid_bush_02": ("f", "11.1_backgrounds/berry_mid_bush_02.png", 1000, True),
-    "mid_light_gap": ("f", "11.1_backgrounds/berry_mid_light_gap.png", 1000, True),
     "mid_old_arch": ("f", "11.1_backgrounds/berry_mid_old_arch.png", 1000, True),
-    "mid_branch_01": ("f", "11.1_backgrounds/berry_mid_branch_01.png", 1000, True),
+    # 中景の木（端で切れない 1 本ずつの木。光の差す隙間・枝の絵は端で幹が切れるので使わない）
+    "mid_tree_a": ("m", "tree_a.png", 1100, True),
+    "mid_tree_b": ("m", "tree_b.png", 1100, True),
+    "mid_tree_c": ("m", "tree_c.png", 1100, True),
+    "mid_tree_d": ("m", "tree_d.png", 1100, True),
+    "mid_branch_a": ("m", "branch_a.png", 800, True),
     "fg_leaf_01": ("f", "11.1_backgrounds/berry_fg_leaf_01.png", 800, True),
     "fg_vine_01": ("f", "11.1_backgrounds/berry_fg_vine_01.png", 900, True),
     # 地形・足場
@@ -50,8 +55,6 @@ FILES = {
     # 運ぶ道具
     "leaf_ramp": ("t", "berry_leaf_ramp.png", 360, True),
 }
-# 端を溶かす中景（絵の端で木や枝が切れているもの）
-FEATHER = {"mid_light_gap": 0.24, "mid_branch_01": 0.14}
 # 同じ枠で切る組（奥・手前）
 PAIRS = {
     "basket": ("berry_basket_back.png", "berry_basket_front.png", 400),
@@ -82,40 +85,17 @@ def seamless_x(im, band=96):
     return Image.fromarray(np.clip(a, 0, 255).astype(np.uint8), im.mode)
 
 
-def feather_sides(im, frac, seed=1):
-    """左右の端で絵が切れているところを、端に向かって透明にする。
-    まっすぐな境目にならないよう、行ごとに幅をゆらし、細かいむらも混ぜる。"""
-    a = np.asarray(im).astype(np.float32)
-    h, w = a.shape[:2]
-    rng = np.random.default_rng(seed)
-    band = max(8, int(w * frac))
-    # 行ごとの幅のゆらぎ（なめらかな波）と、細かいむら
-    rows = np.arange(h)[:, None]
-    wobble = np.zeros((h, 1))
-    for k, amp in ((1, 0.35), (3, 0.2), (9, 0.1)):
-        wobble += amp * np.sin(rows / h * np.pi * 2 * k + rng.uniform(0, 6.3))
-    grain = rng.uniform(-0.12, 0.12, size=(h, w))
-    x = np.arange(w)[None, :].astype(np.float32)
-    alpha = a[:, :, 3] / 255.0
-    for side in ("left", "right"):
-        col = alpha[:, 0] if side == "left" else alpha[:, -1]
-        if (col > 0.15).mean() < 0.05:
-            continue  # この端は切れていない
-        d = x if side == "left" else (w - 1 - x)
-        t = d / (band * (1.0 + wobble)) + grain
-        t = np.clip(t, 0.0, 1.0)
-        t = t * t * (3 - 2 * t)
-        alpha = alpha * t
-    a[:, :, 3] = alpha * 255.0
-    return Image.fromarray(np.clip(a, 0, 255).astype(np.uint8), "RGBA")
-
-
 def main():
-    if len(sys.argv) != 4:
+    if len(sys.argv) != 3:
         print(__doc__)
         sys.exit(1)
-    src = {"f": sys.argv[1], "t": sys.argv[2]}
-    out = sys.argv[3]
+    root = sys.argv[1]
+    src = {
+        "f": os.path.join(root, "berry_forest_all_images_36"),
+        "t": os.path.join(root, "berry_transport_11_4"),
+        "m": os.path.join(root, "berry_mid_trees"),
+    }
+    out = sys.argv[2]
     os.makedirs(out, exist_ok=True)
     for name, (where, path, limit, crop) in FILES.items():
         im = Image.open(os.path.join(src[where], path))
@@ -124,8 +104,6 @@ def main():
             im = im.crop(alpha_bbox(im))
         if name == "edge_top":
             im = seamless_x(im)
-        if name in FEATHER:
-            im = feather_sides(im, FEATHER[name])
         im = fit(im, limit)
         im.save(os.path.join(out, name + ".png"), optimize=True)
         print(name, im.size)

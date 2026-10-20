@@ -266,19 +266,31 @@ func _build_backdrop() -> void:
 	var mid := Parallax2D.new()
 	mid.scroll_scale = Vector2(0.55, 1.0)
 	mid.z_index = -20
-	# 光の差す隙間と枝は端を溶かしてあるので、茂みと重ねて途切れずにつながって見える
-	var mids := ["mid_light_gap", "mid_bush_02", "mid_old_arch", "mid_bush_01", "mid_light_gap", "mid_branch_01", "mid_bush_02", "mid_light_gap", "mid_bush_01"]
-	for i in mids.size():
+	# 中景の木は 1 本ずつ根元から樹冠まで描いた絵なので、どこで重なっても途中で切れて見えない。
+	# [絵, x, 大きさ, 左右反転]。先に置いたものほど奥。木の前に茂みとアーチを重ねる
+	var mids := [
+		["mid_branch_a", 1755.0, 0.5, false],
+		["mid_tree_a", -100.0, 0.55, false], ["mid_tree_c", 300.0, 0.5, false],
+		["mid_tree_b", 840.0, 0.55, false], ["mid_tree_d", 1260.0, 0.5, false],
+		["mid_tree_a", 1560.0, 0.5, true], ["mid_tree_b", 2010.0, 0.5, true],
+		["mid_tree_c", 2260.0, 0.5, true],
+		["mid_bush_02", 150.0, 0.55, false], ["mid_old_arch", 600.0, 0.55, false],
+		["mid_bush_01", 1080.0, 0.55, true], ["mid_bush_02", 1820.0, 0.55, true],
+	]
+	for m in mids:
 		var sp := Sprite2D.new()
-		sp.texture = ForestArt.tex(mids[i])
-		var sc := 0.62 if mids[i] != "mid_branch_01" else 0.8
+		sp.texture = ForestArt.tex(m[0])
+		var sc: float = m[2]
 		sp.scale = Vector2(sc, sc)
 		sp.centered = false
+		sp.flip_h = m[3]
 		var h := sp.texture.get_height() * sc
-		var y := 60.0 - h if mids[i] != "mid_branch_01" else -420.0
-		sp.position = Vector2(-150.0 + i * 300.0, y)
-		sp.flip_h = i % 2 == 1
-		sp.modulate = Color(0.72, 0.8, 0.74)
+		var y := 40.0 - h
+		if m[0] == "mid_branch_a":
+			y = -330.0  # 右の木の幹から横へ伸びる枝（折れ口は幹の後ろに隠れる）
+		sp.position = Vector2(m[1], y)
+		var is_tree: bool = m[0].begins_with("mid_tree") or m[0] == "mid_branch_a"
+		sp.modulate = Color(0.62, 0.72, 0.64) if is_tree else Color(0.72, 0.8, 0.74)
 		mid.add_child(sp)
 	add_child(mid)
 

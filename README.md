@@ -9,7 +9,7 @@
 2. Godot を起動し「インポート」でこのフォルダの `project.godot` を開く
 3. 右上の ▶（F5）で実行
 
-村の左半分（坑道の入口・工房・市場）は `art/village_base.png` の背景絵をそのまま使っています。主人公は `art/player_source.png` の1枚絵をパーツ（体・ひじから先の腕・脚2本）に分け、つるはしを描き足して、関節を回す切り絵アニメで動かしています。坑道の絵は `art/mine/` の手描き素材です（元の素材は `art_src/`、地面タイルは `tools/build_mine_tiles.py` で組み立て）。森の絵は `art/forest/` の手描き素材です（元の素材は `art_src/berry_forest_all_images_36/` と `art_src/berry_transport_11_4/`、`tools/build_forest_art.py` で大きさをそろえて書き出し）。それ以外の絵（生き物・建築部品・空き地の奥の森）はコードで描いた仮の図形です。
+村の左半分（坑道の入口・工房・市場）は `art/village_base.png` の背景絵をそのまま使っています。主人公は `art/player_source.png` の1枚絵をパーツ（体・ひじから先の腕・脚2本）に分け、つるはしを描き足して、関節を回す切り絵アニメで動かしています。坑道の絵は `art/mine/` の手描き素材です（元の素材は `art_src/`、地面タイルは `tools/build_mine_tiles.py` で組み立て）。森の絵は `art/forest/` の手描き素材です（元の素材は `art_src/berry_forest_all_images_36/`・`art_src/berry_transport_11_4/`・`art_src/berry_mid_trees/`（中景の木）、`tools/build_forest_art.py` で大きさをそろえて書き出し）。それ以外の絵（生き物・建築部品・空き地の奥の森）はコードで描いた仮の図形です。
 
 ## 操作
 
